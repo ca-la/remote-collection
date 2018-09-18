@@ -1,0 +1,53 @@
+{
+  "name": "telescope",
+  "version": "1.0.0",
+  "description": "A RemoteData client",
+  "main": "dist/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run lint && npm run prettier && npm run ava",
+    "lint": "tslint -c tslint.json --project tsconfig.json './src/**/*.ts'",
+    "ava": "ava",
+    "prettier": "prettier --list-different '.src/**/*.ts'",
+    "prettier:fix": "prettier --write './src/**/*.ts'",
+    "prepublishOnly": "npm run test && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/telescope-org/telescope.git"
+  },
+  "keywords": [
+    "RemoteData",
+    "algebraic-data-types",
+    "TypeScript",
+    "REST",
+    "GraphQL",
+    "data",
+    "fetch"
+  ],
+  "author": "Scott Trinh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/telescope-org/telescope/issues"
+  },
+  "homepage": "https://gitlab.com/telescope-org/telescope#readme",
+  "devDependencies": {
+    "ava": "1.0.0-beta.8",
+    "prettier": "^1.14.2",
+    "ts-node": "^7.0.1",
+    "tslib": "^1.9.3",
+    "tslint": "^5.11.0",
+    "tslint-config-prettier": "^1.15.0",
+    "tslint-plugin-prettier": "^2.0.0",
+    "typescript": "^3.0.3"
+  },
+  "ava": {
+    "compileEnhancements": false,
+    "extensions": [
+      "ts"
+    ],
+    "require": [
+      "ts-node/register"
+    ]
+  }
+}
