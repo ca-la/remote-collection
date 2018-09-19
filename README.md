@@ -41,16 +41,11 @@ to account for, etc.
 
 ### Usage
 
-#### `Collection`
-
-##### Constructor
-
-Using `io-ts` here, but you can use any kind of decoder with a type guard that
-provides the same `decode, encode, is` API that returns an `Either`.
+#### `Collection` Constructor
 
 ```ts
-import * as t from 'io-ts';
 import { Collection } from '@telescope/telescope';
+import { getCollection, getById } from './api/user';
 
 const TUser = t.type({
   id: t.number,
@@ -59,16 +54,47 @@ const TUser = t.type({
 
 interface User extends t.TypeOf<typeof TUser> {}
 
-const usersCollection: RemoteInitial = new Collection<Error, User>(
-  'https://api.myawesomeapp.com/user',
-  TUser
-);
+const usersCollection: RemoteInitial = new Collection<Error, User>({
+  getCollection: getCollection,
+  getResource: getById,
+  getIdFromResource: (user: User) => user.id,
+  idProp: 'id'
+});
 ```
 
-##### `Collection#list(): RemoteData<Left, A[]>`
+#### Working with the whole collection
 
-##### `Collection#get(id: string): RemoteData<Left, A>`
+If you need to list a collection, you will first need to call `#refresh` on it
+to fetch the list, which returns a promise of the refreshed `Collection`. After
+that, you can either get the whole list with `#list`, a partial view into the
+list with `#view(idList: string[])` or get a single resource by id with
+`#get(id: string)`
 
-##### `Collection#update(data: Partial<A>): Collection<Left, A[]>`
+```ts
+// [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
+const refreshed = await usersCollection.refresh();
 
-##### `Collection#concat(data: A): Collection<Left, A>`
+refreshed.list(); // RemoteSuccess([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
+refreshed.view(['c', 'a', 'b']); // RemoteSuccess([{ id: 'c' }, { id: 'a' }, { id: 'b' }])
+refreshed.get('a'); // RemoteSuccess({ id: a })
+refreshed.get('z'); // RemoteFailure(['No resource found with ID: z'])
+refreshed.view(['c', 'z']); // RemoteSuccess([{ id: 'c' }])
+```
+
+#### Working with a single resource
+
+If you only need to fetch a single resource, you can use `#fetch(id: string)`
+which returns a promise of the `Collection` with that id fetched. After that,
+you can use `#get(id: string)` or even `#view(idList: string[])` to retrieve
+that resource.
+
+```ts
+// [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
+const fetched = await usersCollection.fetch('a');
+
+fetched.get('a'); // RemoteSuccess({ id: a })
+fetched.list(); // RemoteSuccess([{ id: 'a' }])
+fetched.view(['c', 'a', 'b']); // RemoteSuccess([{ id: 'a' }])
+fetched.get('z'); // RemoteFailure(['No resource found with ID: z'])
+fetched.view(['c', 'z']); // RemoteSuccess([])
+```
