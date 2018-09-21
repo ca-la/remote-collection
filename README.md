@@ -1,5 +1,5 @@
-# Telescope
-## A TypeScript `RemoteData` client
+# Remote-Collection
+## A TypeScript `RemoteData` Collection class
 
 ### Rationale
 
@@ -7,7 +7,7 @@ There have been a number of articles written about using Algebraic Data Types to
 describe the states that data fetching entails. Replacing all of the
 `isFetching` and other ergonomics patterns with a clean pseudo-pattern-matching
 pattern is nice, but there is still a lot of room to improve on the ergonomics
-of dealing with remote data. `telescope` aims to provide a user-friendly
+of dealing with remote data. `remote-collection` aims to provide a user-friendly
 experience to the user while keeping 100% type-safety.
 
 ### Resources
@@ -37,14 +37,14 @@ affair: The request to get the collection (`GET /user`), and the request to
 delete a resource (`DELETE /user/some-id`) both have states, data, failure cases
 to account for, etc.
 
-`telescope` is here to help with that!
+`remote-collection` is here to help with that!
 
 ### Usage
 
 #### `Collection` Constructor
 
 ```ts
-import { Collection } from '@telescope/telescope';
+import { Collection } from '@cala/remote-collection';
 import { getCollection, getById } from './api/user';
 
 const TUser = t.type({

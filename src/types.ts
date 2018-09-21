@@ -1,4 +1,4 @@
-import * as RD from "@scotttrinh/remote-data-ts";
+import * as RD from '@scotttrinh/remote-data-ts';
 
 export type ById<A> = { [key: string]: A | undefined };
 export type Remote<A> = RD.RemoteData<string[], A>;

@@ -1,7 +1,7 @@
 {
-  "name": "telescope",
+  "name": "@cala/remote-collection",
   "version": "1.0.0",
-  "description": "A RemoteData client",
+  "description": "A RemoteData Collection class",
   "main": "dist/index.ts",
   "scripts": {
     "build": "tsc",
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@gitlab.com/telescope-org/telescope.git"
+    "url": "git@github.com:ca-la/remote-collection.git"
   },
   "keywords": [
     "RemoteData",
@@ -25,16 +25,16 @@
     "data",
     "fetch"
   ],
-  "author": "Scott Trinh",
-  "license": "ISC",
+  "author": "CALA <devops@ca.la>",
+  "license": "MIT",
   "bugs": {
-    "url": "https://gitlab.com/telescope-org/telescope/issues"
+    "url": "https://gitlab.com/ca-la/remote-collection/issues"
   },
-  "homepage": "https://gitlab.com/telescope-org/telescope#readme",
+  "homepage": "https://gitlab.com/ca-la/remote-collection#readme",
   "devDependencies": {
     "@types/lodash": "^4.14.116",
     "ava": "1.0.0-beta.8",
-    "prettier": "^1.14.2",
+    "prettier": "^1.14.3",
     "ts-node": "^7.0.1",
     "tslib": "^1.9.3",
     "tslint": "^5.11.0",
@@ -52,7 +52,8 @@
     ]
   },
   "dependencies": {
-    "@scotttrinh/remote-data-ts": "^1.0.0",
+    "@cala/remote-data": "^1.0.0",
+    "fp-ts": "^1.8.1",
     "io-ts": "^1.3.0",
     "isomorphic-fetch": "^2.2.1",
     "lodash": "^4.17.11",

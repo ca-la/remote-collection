@@ -1,6 +1,6 @@
-import anyTest, { FailAssertion, TestInterface } from "ava";
-import Collection from "../index";
-import { Item, items, TestContext } from "./fixtures";
+import anyTest, { FailAssertion, TestInterface } from 'ava';
+import Collection from '../index';
+import { Item, items, TestContext } from './fixtures';
 
 interface UpdateContext {
   updatePromise: {
@@ -17,9 +17,7 @@ test.beforeEach(async t => {
     getCollection: () => Promise.resolve(items),
     getResource: (id: string) => {
       const item = items.find(i => i.id === id);
-      return item
-        ? Promise.resolve(item)
-        : Promise.reject(new Error("Item not found"));
+      return item ? Promise.resolve(item) : Promise.reject(new Error('Item not found'));
     },
     updateResource: (id: string, update: Partial<Item>) => {
       const item = items.find(i => i.id === id);
@@ -35,54 +33,54 @@ test.beforeEach(async t => {
       return Promise.resolve();
     },
     getIdFromResource: (resource: Item) => resource.id,
-    idProp: "id"
+    idProp: 'id'
   }).refresh();
 });
 
-test("update valid id sets item to refresh", async t => {
+test('update valid id sets item to refresh', async t => {
   t.plan(4);
 
-  const update = { id: "a", foo: "quux" };
-  t.true(t.context.col.get("a").isSuccess());
+  const update = { id: 'a', foo: 'quux' };
+  t.true(t.context.col.get('a').isSuccess());
 
-  t.context.col.update("a", update).then(updatedCollection => {
-    t.true(updatedCollection.get("a").isSuccess());
+  t.context.col.update('a', update).then(updatedCollection => {
+    t.true(updatedCollection.get('a').isSuccess());
     updatedCollection
-      .get("a")
+      .get('a')
       .toOption()
       .foldL(t.fail, value => t.deepEqual(value, update));
   });
 
-  t.true(t.context.col.get("a").isRefresh());
+  t.true(t.context.col.get('a').isRefresh());
 
   const { updated, resolve } = t.context.updatePromise;
 
   await resolve(updated);
 });
 
-test("update invalid id rejects update promise", async t => {
+test('update invalid id rejects update promise', async t => {
   t.plan(1);
 
-  const update = { id: "z", foo: "quux" };
+  const update = { id: 'z', foo: 'quux' };
 
   try {
-    await t.context.col.update("z", update);
+    await t.context.col.update('z', update);
   } catch (err) {
-    t.deepEqual(err, new Error("Item not found with ID: z"));
+    t.deepEqual(err, new Error('Item not found with ID: z'));
   }
 });
 
-test("failed update to valid id rejects update promise", async t => {
+test('failed update to valid id rejects update promise', async t => {
   t.plan(2);
 
-  const update = { id: "a", foo: "quux" };
-  const updateError = new Error("There was a problem updating");
+  const update = { id: 'a', foo: 'quux' };
+  const updateError = new Error('There was a problem updating');
 
-  t.context.col.update("a", update).catch((err: Error) => {
+  t.context.col.update('a', update).catch((err: Error) => {
     t.deepEqual(err, updateError);
   });
 
-  t.true(t.context.col.get("a").isRefresh());
+  t.true(t.context.col.get('a').isRefresh());
 
   await t.context.updatePromise.reject(updateError);
 });

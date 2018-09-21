@@ -1,22 +1,11 @@
-import { Type, ValidationError } from "io-ts";
-import { identity } from "fp-ts/lib/function";
-import { PathReporter } from "io-ts/lib/PathReporter";
-import { at, fromPairs, omit } from "lodash";
-import * as RD from "@scotttrinh/remote-data-ts";
-import { Option, option, none, some, fromNullable } from "fp-ts/lib/Option";
-import { Either, either, left } from "fp-ts/lib/Either";
-import { sequence, traverse } from "fp-ts/lib/Traversable";
-import { array } from "fp-ts/lib/Array";
+import { identity } from 'fp-ts/lib/function';
+import { fromPairs, omit } from 'lodash';
+import * as RD from '@cala/remote-data';
+import { sequence } from 'fp-ts/lib/Traversable';
+import { array } from 'fp-ts/lib/Array';
 
-import {
-  ById,
-  Remote,
-  RemoteList,
-  RemoteById,
-  ListRemote,
-  NestedRemoteById
-} from "./types";
-import { safeGet } from "./utils";
+import { ById, Remote, RemoteList, RemoteById } from './types';
+import { safeGet } from './utils';
 
 const view = <A>(entities: RemoteById<A>, ids: string[]): RemoteList<A> => {
   const s = sequence(RD.remoteData, array);
@@ -24,9 +13,8 @@ const view = <A>(entities: RemoteById<A>, ids: string[]): RemoteList<A> => {
   return s(
     ids.reduce(
       (resources: Remote<A>[], id: string) =>
-        safeGet<Remote<A>>(entities, id).fold<Remote<A>[]>(
-          resources,
-          (a: Remote<A>) => resources.concat(a)
+        safeGet<Remote<A>>(entities, id).fold<Remote<A>[]>(resources, (a: Remote<A>) =>
+          resources.concat(a)
         ),
       []
     )
@@ -49,9 +37,7 @@ export default class Collection<Resource> {
   constructor(private options: CollectionOptions<Resource>) {}
 
   public refresh(): Promise<Collection<Resource>> {
-    this.idList = this.idList
-      .toOption()
-      .fold<RemoteList<string>>(RD.pending, RD.refresh);
+    this.idList = this.idList.toOption().fold<RemoteList<string>>(RD.pending, RD.refresh);
 
     return this.options
       .getCollection()
@@ -93,9 +79,7 @@ export default class Collection<Resource> {
         (value: Remote<Resource>) =>
           value
             .toOption()
-            .fold<Remote<Resource>>(RD.pending, (value: Resource) =>
-              RD.refresh(value)
-            )
+            .fold<Remote<Resource>>(RD.pending, (value: Resource) => RD.refresh(value))
       )
     };
 
@@ -115,10 +99,7 @@ export default class Collection<Resource> {
     );
   }
 
-  public update(
-    id: string,
-    update: Partial<Resource>
-  ): Promise<Collection<Resource>> {
+  public update(id: string, update: Partial<Resource>): Promise<Collection<Resource>> {
     const currentValue = safeGet(this.entities, id);
 
     this.entities = {
@@ -130,9 +111,7 @@ export default class Collection<Resource> {
         (value: Remote<Resource>) =>
           value
             .toOption()
-            .fold<Remote<Resource>>(RD.pending, (value: Resource) =>
-              RD.refresh(value)
-            )
+            .fold<Remote<Resource>>(RD.pending, (value: Resource) => RD.refresh(value))
       )
     };
 
@@ -157,9 +136,7 @@ export default class Collection<Resource> {
         (value: Remote<Resource>) =>
           value
             .toOption()
-            .fold<Remote<Resource>>(RD.pending, (value: Resource) =>
-              RD.refresh(value)
-            )
+            .fold<Remote<Resource>>(RD.pending, (value: Resource) => RD.refresh(value))
       )
     };
 
