@@ -1,7 +1,7 @@
 import { Type, ValidationError } from "io-ts";
 import { identity } from "fp-ts/lib/function";
 import { PathReporter } from "io-ts/lib/PathReporter";
-import { at, fromPairs } from "lodash";
+import { at, fromPairs, omit } from "lodash";
 import * as RD from "@scotttrinh/remote-data-ts";
 import { Option, option, none, some, fromNullable } from "fp-ts/lib/Option";
 import { Either, either, left } from "fp-ts/lib/Either";
@@ -36,11 +36,13 @@ const view = <A>(entities: RemoteById<A>, ids: string[]): RemoteList<A> => {
 export interface CollectionOptions<Resource> {
   getCollection: () => Promise<Resource[]>;
   getResource: (id: string) => Promise<Resource>;
+  updateResource: (id: string, update: Partial<Resource>) => Promise<Resource>;
+  deleteResource: (id: string) => Promise<void>;
   getIdFromResource: (resource: Resource) => string;
   idProp: string;
 }
 
-export class Collection<Resource> {
+export default class Collection<Resource> {
   private idList: RemoteList<string> = RD.initial;
   private entities: ById<Remote<Resource>> = {};
 
@@ -111,5 +113,59 @@ export class Collection<Resource> {
       RD.failure([`No resource found with ID: ${id}`]),
       identity
     );
+  }
+
+  public update(
+    id: string,
+    update: Partial<Resource>
+  ): Promise<Collection<Resource>> {
+    const currentValue = safeGet(this.entities, id);
+
+    this.entities = {
+      ...this.entities,
+      [id]: currentValue.foldL<Remote<Resource>>(
+        () => {
+          throw new Error(`Item not found with ID: ${id}`);
+        },
+        (value: Remote<Resource>) =>
+          value
+            .toOption()
+            .fold<Remote<Resource>>(RD.pending, (value: Resource) =>
+              RD.refresh(value)
+            )
+      )
+    };
+
+    return this.options.updateResource(id, update).then(resource => {
+      this.entities = {
+        ...this.entities,
+        [id]: RD.success(resource)
+      };
+      return this;
+    });
+  }
+
+  public delete(id: string): Promise<Collection<Resource>> {
+    const currentValue = safeGet(this.entities, id);
+
+    this.entities = {
+      ...this.entities,
+      [id]: currentValue.foldL<Remote<Resource>>(
+        () => {
+          throw new Error(`Item not found with ID: ${id}`);
+        },
+        (value: Remote<Resource>) =>
+          value
+            .toOption()
+            .fold<Remote<Resource>>(RD.pending, (value: Resource) =>
+              RD.refresh(value)
+            )
+      )
+    };
+
+    return this.options.deleteResource(id).then(() => {
+      this.entities = omit(this.entities, id);
+      return this;
+    });
   }
 }
