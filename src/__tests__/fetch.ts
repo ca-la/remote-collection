@@ -32,7 +32,7 @@ test('#get after #fetch returns RemoteSuccess for valid id', async t => {
     .toOption()
     .foldL<FailAssertion | void>(
       () => t.fail,
-      value => {
+      (value: Item) => {
         t.deepEqual(value, items[0]);
       }
     );

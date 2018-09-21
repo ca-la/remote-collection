@@ -30,7 +30,7 @@ test('#list on newly constructed collection returns initial', t => {
 });
 
 test('#list on refreshed collection is not identical', async t => {
-  const refreshed = await t.context.col.refresh();
+  await t.context.col.refresh();
   t.not(t.context.col.list(), t.context.col.list());
 });
 
@@ -41,7 +41,7 @@ test('#list on refreshed collection returns collection', async t => {
     .toOption()
     .foldL<FailAssertion | void>(
       () => t.fail,
-      value => {
+      (value: Item[]) => {
         t.deepEqual(value, items);
       }
     );
@@ -54,7 +54,7 @@ test('#view on refreshed collection returns collection in order requested', asyn
     .toOption()
     .foldL<FailAssertion | void>(
       () => t.fail,
-      value => {
+      (value: Item[]) => {
         t.deepEqual(value, [{ id: 'b', foo: 'baz' }, { id: 'a', foo: 'bar' }]);
       }
     );
@@ -67,7 +67,7 @@ test('#view with invalid ids returns list with invalid ids missing', async t => 
     .toOption()
     .foldL<FailAssertion | void>(
       () => t.fail,
-      value => {
+      (value: Item[]) => {
         t.deepEqual(value, [{ id: 'b', foo: 'baz' }]);
       }
     );
@@ -80,7 +80,7 @@ test('#get on refreshed collection returns RemoteSuccess for valid id', async t 
     .toOption()
     .foldL<FailAssertion | void>(
       () => t.fail,
-      value => {
+      (value: Item) => {
         t.deepEqual(value, items[0]);
       }
     );

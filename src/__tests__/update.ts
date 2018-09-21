@@ -1,4 +1,4 @@
-import anyTest, { FailAssertion, TestInterface } from 'ava';
+import anyTest, { TestInterface } from 'ava';
 import Collection from '../index';
 import { Item, items, TestContext } from './fixtures';
 
@@ -48,7 +48,7 @@ test('update valid id sets item to refresh', async t => {
     updatedCollection
       .get('a')
       .toOption()
-      .foldL(t.fail, value => t.deepEqual(value, update));
+      .foldL(t.fail, (value: Item) => t.deepEqual(value, update));
   });
 
   t.true(t.context.col.get('a').isRefresh());

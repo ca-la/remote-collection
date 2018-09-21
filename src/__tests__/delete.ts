@@ -1,4 +1,4 @@
-import anyTest, { FailAssertion, TestInterface } from 'ava';
+import anyTest, { TestInterface } from 'ava';
 import Collection from '../index';
 import { Item, items, TestContext } from './fixtures';
 
