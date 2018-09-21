@@ -1,4 +1,6 @@
 import anyTest, { TestInterface } from 'ava';
+import * as RD from '@cala/remote-data';
+import { none, some } from 'fp-ts/lib/Option';
 import Collection from '../index';
 import { Item, items, TestContext } from './fixtures';
 
@@ -42,13 +44,13 @@ test('delete valid id sets item to refresh', async t => {
 
   const { col: collection } = t.context;
 
-  t.true(collection.get('a').isSuccess());
+  t.deepEqual(collection.get('a'), some(RD.success({ id: 'a', foo: 'bar' })));
 
   collection.delete('a').then(() => {
-    t.true(collection.get('a').isFailure());
+    t.deepEqual(collection.get('a'), none);
   });
 
-  t.true(collection.get('a').isRefresh());
+  t.deepEqual(collection.get('a'), some(RD.refresh({ id: 'a', foo: 'bar' })));
 
   await t.context.deletePromise.resolve();
 });
@@ -75,7 +77,7 @@ test('failed delete to valid id rejects delete promise', async t => {
     t.deepEqual(err, deleteError);
   });
 
-  t.true(collection.get('a').isRefresh());
+  t.deepEqual(collection.get('a'), some(RD.refresh({ id: 'a', foo: 'bar' })));
 
   await t.context.deletePromise.reject(deleteError);
 });

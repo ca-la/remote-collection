@@ -1,4 +1,6 @@
 import anyTest, { TestInterface } from 'ava';
+import { some } from 'fp-ts/lib/Option';
+import * as RD from '@cala/remote-data';
 import Collection from '../index';
 import { Item, items, TestContext } from './fixtures';
 
@@ -38,20 +40,20 @@ test.beforeEach(async t => {
 });
 
 test('update valid id sets item to refresh', async t => {
-  t.plan(4);
+  t.plan(3);
 
   const update = { id: 'a', foo: 'quux' };
-  t.true(t.context.col.get('a').isSuccess());
+  t.deepEqual(t.context.col.get('a'), some(RD.success({ id: 'a', foo: 'bar' })));
 
   t.context.col.update('a', update).then(updatedCollection => {
-    t.true(updatedCollection.get('a').isSuccess());
     updatedCollection
       .get('a')
-      .toOption()
-      .foldL(t.fail, (value: Item) => t.deepEqual(value, update));
+      .foldL(t.fail, (value: RD.RemoteData<string[], Item>) =>
+        t.deepEqual(value, RD.success(update))
+      );
   });
 
-  t.true(t.context.col.get('a').isRefresh());
+  t.deepEqual(t.context.col.get('a'), some(RD.refresh({ id: 'a', foo: 'bar' })));
 
   const { updated, resolve } = t.context.updatePromise;
 
@@ -80,7 +82,7 @@ test('failed update to valid id rejects update promise', async t => {
     t.deepEqual(err, updateError);
   });
 
-  t.true(t.context.col.get('a').isRefresh());
+  t.deepEqual(t.context.col.get('a'), some(RD.refresh({ id: 'a', foo: 'bar' })));
 
   await t.context.updatePromise.reject(updateError);
 });

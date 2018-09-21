@@ -1,4 +1,5 @@
 import anyTest, { FailAssertion, TestInterface } from 'ava';
+import * as RD from '@cala/remote-data';
 import Collection from '../index';
 import { Item, items, TestContext } from './fixtures';
 
@@ -73,20 +74,17 @@ test('#view with invalid ids returns list with invalid ids missing', async t => 
     );
 });
 
-test('#get on refreshed collection returns RemoteSuccess for valid id', async t => {
+test('#get on refreshed collection returns Some(RemoteSuccess) for valid id', async t => {
   const refreshed = await t.context.col.refresh();
-  refreshed
-    .get('a')
-    .toOption()
-    .foldL<FailAssertion | void>(
-      () => t.fail,
-      (value: Item) => {
-        t.deepEqual(value, items[0]);
-      }
-    );
+  refreshed.get('a').foldL<FailAssertion | void>(
+    () => t.fail,
+    (value: RD.RemoteData<string[], Item>) => {
+      t.deepEqual(value, RD.success(items[0]));
+    }
+  );
 });
 
-test('#get on refreshed collection returns RemoteFailure for invalid id', async t => {
+test('#get on refreshed collection returns None for invalid id', async t => {
   const refreshed = await t.context.col.refresh();
-  t.true(refreshed.get('z').isFailure());
+  t.true(refreshed.get('z').isNone());
 });

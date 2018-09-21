@@ -1,4 +1,5 @@
 import anyTest, { FailAssertion, TestInterface } from 'ava';
+import * as RD from '@cala/remote-data';
 import Collection from '../index';
 import { Item, items, TestContext } from './fixtures';
 
@@ -25,20 +26,17 @@ test.beforeEach(t => {
   });
 });
 
-test('#get after #fetch returns RemoteSuccess for valid id', async t => {
+test('#get after #fetch returns Some(RemoteSuccess) for valid id', async t => {
   const fetched = await t.context.col.fetch('a');
-  fetched
-    .get('a')
-    .toOption()
-    .foldL<FailAssertion | void>(
-      () => t.fail,
-      (value: Item) => {
-        t.deepEqual(value, items[0]);
-      }
-    );
+  fetched.get('a').foldL<FailAssertion | void>(
+    () => t.fail,
+    (value: RD.RemoteData<string[], Item>) => {
+      t.deepEqual(value, RD.success(items[0]));
+    }
+  );
 });
 
-test('#get after #fetch returns RemoteFailure for invalid id', async t => {
+test('#get after #fetch returns None for invalid id', async t => {
   const fetched = await t.context.col.fetch('a');
-  t.true(fetched.get('z').isFailure());
+  t.true(fetched.get('z').isNone());
 });

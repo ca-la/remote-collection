@@ -1,4 +1,5 @@
 import { identity } from 'fp-ts/lib/function';
+import { Option } from 'fp-ts/lib/Option';
 import { fromPairs, omit } from 'lodash';
 import * as RD from '@cala/remote-data';
 import { sequence } from 'fp-ts/lib/Traversable';
@@ -92,11 +93,8 @@ export default class Collection<Resource> {
     });
   }
 
-  public get(id: string): Remote<Resource> {
-    return safeGet(this.entities, id).fold<Remote<Resource>>(
-      RD.failure([`No resource found with ID: ${id}`]),
-      identity
-    );
+  public get(id: string): Option<Remote<Resource>> {
+    return safeGet(this.entities, id);
   }
 
   public update(id: string, update: Partial<Resource>): Promise<Collection<Resource>> {

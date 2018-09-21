@@ -68,7 +68,7 @@ If you need to list a collection, you will first need to call `#refresh` on it
 to fetch the list, which returns a promise of the refreshed `Collection`. After
 that, you can either get the whole list with `#list`, a partial view into the
 list with `#view(idList: string[])` or get a single resource by id with
-`#get(id: string)`
+`#get(id: string)`.
 
 ```ts
 // [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
@@ -76,8 +76,8 @@ const refreshed = await usersCollection.refresh();
 
 refreshed.list(); // RemoteSuccess([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
 refreshed.view(['c', 'a', 'b']); // RemoteSuccess([{ id: 'c' }, { id: 'a' }, { id: 'b' }])
-refreshed.get('a'); // RemoteSuccess({ id: a })
-refreshed.get('z'); // RemoteFailure(['No resource found with ID: z'])
+refreshed.get('a'); // Some(RemoteSuccess({ id: a }))
+refreshed.get('z'); // None
 refreshed.view(['c', 'z']); // RemoteSuccess([{ id: 'c' }])
 ```
 
@@ -92,9 +92,9 @@ that resource.
 // [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
 const fetched = await usersCollection.fetch('a');
 
-fetched.get('a'); // RemoteSuccess({ id: a })
+fetched.get('a'); // Some(RemoteSuccess({ id: a }))
 fetched.list(); // RemoteSuccess([{ id: 'a' }])
 fetched.view(['c', 'a', 'b']); // RemoteSuccess([{ id: 'a' }])
-fetched.get('z'); // RemoteFailure(['No resource found with ID: z'])
+fetched.get('z'); // None
 fetched.view(['c', 'z']); // RemoteSuccess([])
 ```
