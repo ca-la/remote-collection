@@ -45,18 +45,23 @@ to account for, etc.
 
 ```ts
 import { Collection } from '@cala/remote-collection';
-import { getCollection, getById } from './api/user';
+import {
+  getCollection,
+  getById,
+  updateById,
+  deleteById
+} from './api/user';
 
-const TUser = t.type({
-  id: t.number,
-  name: t.string
-});
-
-interface User extends t.TypeOf<typeof TUser> {}
+interface User {
+  id: number;
+  name: string;
+}
 
 const usersCollection: RemoteInitial = new Collection<Error, User>({
   getCollection: getCollection,
   getResource: getById,
+  updateResource: updateById,
+  deleteResource: deleteById,
   getIdFromResource: (user: User) => user.id,
   idProp: 'id'
 });
