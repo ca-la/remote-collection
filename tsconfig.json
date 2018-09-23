@@ -10,5 +10,11 @@
     "pretty": true,
     "noUnusedLocals": true,
     "esModuleInterop": true
-  }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "**/__tests__/**/*"
+  ]
 }
