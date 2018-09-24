@@ -15,6 +15,6 @@ test('with initial data', t => {
   const col = new Collection<Item>(existing);
 
   t.not(existing, col);
-  t.is(col.knownIds, existing.knownIds);
-  t.is(col.entities, existing.entities);
+  t.deepEqual(col.knownIds, existing.knownIds);
+  t.deepEqual(col.entities, existing.entities);
 });

@@ -27,8 +27,8 @@ export default class Collection<Resource extends { [key: string]: any }> {
 
   constructor(fromCollection?: Collection<Resource>) {
     if (fromCollection) {
-      this.knownIds = fromCollection.knownIds;
-      this.entities = fromCollection.entities;
+      this.knownIds = fromCollection.knownIds.map(ids => ids.slice());
+      this.entities = { ...fromCollection.entities };
     }
   }
 
