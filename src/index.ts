@@ -1,4 +1,4 @@
-import { fromPairs, omit, union, without } from 'lodash';
+import { fromPairs, mapValues, omit, union, without } from 'lodash';
 import * as RD from '@cala/remote-data';
 import { Option } from 'fp-ts/lib/Option';
 import { sequence } from 'fp-ts/lib/Traversable';
@@ -34,7 +34,12 @@ export default class Collection<Resource extends { [key: string]: any }> {
 
   public refresh(): Collection<Resource> {
     const col = new Collection(this);
-    col.knownIds = this.knownIds.toOption().fold<RemoteList<string>>(RD.pending, RD.refresh);
+    col.knownIds = col.knownIds.toOption().fold<RemoteList<string>>(RD.pending, RD.refresh);
+    col.entities = mapValues<RemoteById<Resource>, Remote<Resource>>(
+      col.entities,
+      (entity: Remote<Resource> | undefined) =>
+        entity ? entity.toOption().fold<Remote<Resource>>(RD.pending, RD.refresh) : RD.pending
+    );
 
     return col;
   }
