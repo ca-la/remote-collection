@@ -1,31 +1,20 @@
-import anyTest, { TestInterface } from 'ava';
+import test from 'ava';
+import { initial } from '@cala/remote-data';
 import Collection from '../index';
-import { Item, items, TestContext } from './fixtures';
+import { Item } from './fixtures';
 
-const test = anyTest as TestInterface<TestContext>;
-
-test.beforeEach(t => {
-  t.context.col = new Collection<Item>({
-    getCollection: () => Promise.resolve(items),
-    getResource: (id: string) => {
-      const item = items.find(i => i.id === id);
-      return item ? Promise.resolve(item) : Promise.reject(new Error('Item not found'));
-    },
-    updateResource: (id: string, update: Partial<Item>) => {
-      const item = items.find(i => i.id === id);
-      return item
-        ? Promise.resolve({ ...item, ...update })
-        : Promise.reject(new Error('Item not found'));
-    },
-    deleteResource: (id: string) => {
-      return Promise.resolve();
-    },
-    getIdFromResource: (resource: Item) => resource.id,
-    idProp: 'id'
-  });
+test('with no initial data', t => {
+  const col = new Collection<Item>();
+  t.truthy(col);
+  t.deepEqual(col.knownIds, initial);
+  t.deepEqual(col.entities, {});
 });
 
-test('constructor returns a truthy value', async t => {
-  t.truthy(t.context.col);
-  t.deepEqual(t.context.col.list().getOrElse([]), []);
+test('with initial data', t => {
+  const existing = new Collection<Item>();
+  const col = new Collection<Item>(existing);
+
+  t.not(existing, col);
+  t.is(col.knownIds, existing.knownIds);
+  t.is(col.entities, existing.entities);
 });

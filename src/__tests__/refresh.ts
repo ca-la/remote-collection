@@ -1,90 +1,27 @@
-import anyTest, { FailAssertion, TestInterface } from 'ava';
+import test from 'ava';
 import * as RD from '@cala/remote-data';
 import Collection from '../index';
-import { Item, items, TestContext } from './fixtures';
+import { Item, items } from './fixtures';
 
-const test = anyTest as TestInterface<TestContext>;
-
-test.beforeEach(t => {
-  t.context.col = new Collection<Item>({
-    getCollection: () => Promise.resolve(items),
-    getResource: (id: string) => {
-      const item = items.find(i => i.id === id);
-      return item ? Promise.resolve(item) : Promise.reject(new Error('Item not found'));
-    },
-    updateResource: (id: string, update: Partial<Item>) => {
-      const item = items.find(i => i.id === id);
-      return item
-        ? Promise.resolve({ ...item, ...update })
-        : Promise.reject(new Error('Item not found'));
-    },
-    deleteResource: (id: string) => {
-      return Promise.resolve();
-    },
-    getIdFromResource: (resource: Item) => resource.id,
-    idProp: 'id'
-  });
+test('with no items loaded, #refresh', t => {
+  const col = new Collection<Item>();
+  t.deepEqual(col.knownIds, RD.initial);
+  const refreshed = col.refresh();
+  t.deepEqual(refreshed.knownIds, RD.pending, 'transitions knownIds to pending');
 });
 
-test('#list on newly constructed collection returns initial', t => {
-  t.true(t.context.col.list().isInitial());
-});
-
-test('#list on refreshed collection is not identical', async t => {
-  await t.context.col.refresh();
-  t.not(t.context.col.list(), t.context.col.list());
-});
-
-test('#list on refreshed collection returns collection', async t => {
-  const refreshed = await t.context.col.refresh();
-  refreshed
-    .list()
-    .toOption()
-    .foldL<FailAssertion | void>(
-      () => t.fail,
-      (value: Item[]) => {
-        t.deepEqual(value, items);
-      }
-    );
-});
-
-test('#view on refreshed collection returns collection in order requested', async t => {
-  const refreshed = await t.context.col.refresh();
-  refreshed
-    .view(['b', 'a'])
-    .toOption()
-    .foldL<FailAssertion | void>(
-      () => t.fail,
-      (value: Item[]) => {
-        t.deepEqual(value, [{ id: 'b', foo: 'baz' }, { id: 'a', foo: 'bar' }]);
-      }
-    );
-});
-
-test('#view with invalid ids returns list with invalid ids missing', async t => {
-  const refreshed = await t.context.col.refresh();
-  refreshed
-    .view(['b', 'z'])
-    .toOption()
-    .foldL<FailAssertion | void>(
-      () => t.fail,
-      (value: Item[]) => {
-        t.deepEqual(value, [{ id: 'b', foo: 'baz' }]);
-      }
-    );
-});
-
-test('#get on refreshed collection returns Some(RemoteSuccess) for valid id', async t => {
-  const refreshed = await t.context.col.refresh();
-  refreshed.get('a').foldL<FailAssertion | void>(
-    () => t.fail,
-    (value: RD.RemoteData<string[], Item>) => {
-      t.deepEqual(value, RD.success(items[0]));
-    }
+test('with item loading failure, #refresh', t => {
+  const col = new Collection<Item>().withListFailure('There was a problem getting the list');
+  t.deepEqual(
+    col.knownIds,
+    RD.failure(['There was a problem getting the list']),
+    'transitions knownIds to pending'
   );
 });
 
-test('#get on refreshed collection returns None for invalid id', async t => {
-  const refreshed = await t.context.col.refresh();
-  t.true(refreshed.get('z').isNone());
+test('with items loaded, #refresh', t => {
+  const col = new Collection<Item>().withList('id', items);
+  t.deepEqual(col.knownIds, RD.success(['a', 'b']));
+  const refreshed = col.refresh();
+  t.deepEqual(refreshed.knownIds, RD.refresh(['a', 'b']), 'transitions knownIds to refresh');
 });
