@@ -1,8 +1,8 @@
 {
   "name": "@cala/remote-collection",
-  "version": "0.1.0",
+  "version": "0.2.0-1",
   "description": "A RemoteData Collection class",
-  "main": "dist/index.ts",
+  "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "files": [
     "dist"
@@ -59,7 +59,7 @@
     ]
   },
   "dependencies": {
-    "@cala/remote-data": "^0.1.0",
+    "@cala/remote-data": "^0.1.1",
     "fp-ts": "^1.8.1",
     "isomorphic-fetch": "^2.2.1",
     "lodash": "^4.17.11"

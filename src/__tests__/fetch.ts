@@ -1,42 +1,29 @@
-import anyTest, { FailAssertion, TestInterface } from 'ava';
+import test from 'ava';
 import * as RD from '@cala/remote-data';
 import Collection from '../index';
-import { Item, items, TestContext } from './fixtures';
+import { Item, items } from './fixtures';
 
-const test = anyTest as TestInterface<TestContext>;
+test('with no items loaded, #fetch', t => {
+  const col = new Collection<Item>().fetch('a');
+  t.deepEqual(col.entities, { a: RD.pending }, 'transitions id to pending');
+});
 
-test.beforeEach(t => {
-  t.context.col = new Collection<Item>({
-    getCollection: () => Promise.resolve(items),
-    getResource: (id: string) => {
-      const item = items.find(i => i.id === id);
-      return item ? Promise.resolve(item) : Promise.reject(new Error('Item not found'));
-    },
-    updateResource: (id: string, update: Partial<Item>) => {
-      const item = items.find(i => i.id === id);
-      return item
-        ? Promise.resolve({ ...item, ...update })
-        : Promise.reject(new Error('Item not found'));
-    },
-    deleteResource: (id: string) => {
-      return Promise.resolve();
-    },
-    getIdFromResource: (resource: Item) => resource.id,
-    idProp: 'id'
+test('with item loading failure, #fetch', t => {
+  const col = new Collection<Item>()
+    .withListFailure('There was a problem getting the list')
+    .fetch('a');
+  t.deepEqual(col.entities, { a: RD.pending }, 'transitions id to pending');
+});
+
+test('with items loaded, #fetch', t => {
+  const col = new Collection<Item>().withList('id', items);
+  t.deepEqual(col.entities, {
+    a: RD.success<string[], Item>(items[0]),
+    b: RD.success<string[], Item>(items[1])
   });
-});
-
-test('#get after #fetch returns Some(RemoteSuccess) for valid id', async t => {
-  const fetched = await t.context.col.fetch('a');
-  fetched.get('a').foldL<FailAssertion | void>(
-    () => t.fail,
-    (value: RD.RemoteData<string[], Item>) => {
-      t.deepEqual(value, RD.success(items[0]));
-    }
-  );
-});
-
-test('#get after #fetch returns None for invalid id', async t => {
-  const fetched = await t.context.col.fetch('a');
-  t.true(fetched.get('z').isNone());
+  const fetched = col.fetch('a');
+  t.deepEqual(fetched.entities, {
+    a: RD.refresh<string[], Item>(items[0]),
+    b: RD.success<string[], Item>(items[1])
+  });
 });
