@@ -90,6 +90,25 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
+  public mapResource(
+    id: string,
+    mapFunction: (resource: Resource) => Resource
+  ): Collection<Resource> {
+    const col = new Collection(this);
+
+    const existingResource = col.entities[id];
+    if (!existingResource) {
+      return col;
+    }
+
+    col.entities = {
+      ...this.entities,
+      [id]: existingResource.map(mapFunction)
+    };
+
+    return col;
+  }
+
   public withResourceFailure(id: string, error: string): Collection<Resource> {
     const col = new Collection(this);
     col.knownIds = this.concatKnownId(id);
