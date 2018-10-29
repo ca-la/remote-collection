@@ -154,6 +154,14 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return safeGet(this.entities, id);
   }
 
+  public concatResources(idProp: string, resources: Resource[]): Collection<Resource> {
+    const col = new Collection(this);
+
+    return resources.reduce((acc: Collection<Resource>, resource: Resource) => {
+      return acc.withResource(resource[idProp], resource);
+    }, col);
+  }
+
   private concatKnownId(id: string): RemoteList<string> {
     const loneId = RD.success<string[], string[]>([id]);
     return this.knownIds.caseOf<RemoteList<string>>({
