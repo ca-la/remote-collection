@@ -7,6 +7,14 @@ import { array } from 'fp-ts/lib/Array';
 import { ById, Remote, RemoteList, RemoteById } from './types';
 import { safeGet } from './utils';
 
+export const URI = '@cala/remote-collection';
+export type URI = typeof URI;
+declare module 'fp-ts/lib/HKT' {
+  interface URI2HKT1<A> {
+    '@cala/remote-collection': Collection<A>;
+  }
+}
+
 const view = <A>(entities: RemoteById<A>, ids: string[]): RemoteList<A> => {
   const s = sequence(RD.remoteData, array);
 
@@ -22,6 +30,9 @@ const view = <A>(entities: RemoteById<A>, ids: string[]): RemoteList<A> => {
 };
 
 export default class Collection<Resource extends { [key: string]: any }> {
+  readonly _A!: Resource;
+  readonly _URI!: URI;
+
   public knownIds: RemoteList<string> = RD.initial;
   public entities: ById<Remote<Resource>> = {};
 
@@ -44,7 +55,7 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public withList(idProp: string, list: Resource[]): Collection<Resource> {
+  public withList(idProp: keyof Resource, list: Resource[]): Collection<Resource> {
     const col = new Collection(this);
     const idsAndSuccesses: [string, Remote<Resource>][] = list.map(
       (resource: Resource): [string, Remote<Resource>] => [
@@ -154,12 +165,21 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return safeGet(this.entities, id);
   }
 
-  public concatResources(idProp: string, resources: Resource[]): Collection<Resource> {
+  public concatResources(idProp: keyof Resource, resources: Resource[]): Collection<Resource> {
     const col = new Collection(this);
 
     return resources.reduce((acc: Collection<Resource>, resource: Resource) => {
       return acc.withResource(resource[idProp], resource);
     }, col);
+  }
+
+  public concat(idProp: keyof Resource, other: Collection<Resource>): Collection<Resource> {
+    const col = new Collection<Resource>(this);
+
+    return other
+      .view()
+      .toOption()
+      .fold(col, (bResources: Resource[]) => col.concatResources(idProp, bResources));
   }
 
   private concatKnownId(id: string): RemoteList<string> {
