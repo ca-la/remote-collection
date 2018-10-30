@@ -1,10 +1,10 @@
 import test from 'ava';
 import * as RD from '@cala/remote-data';
-import RemoteCollection from '../index';
+import Collection from '../index';
 import { Item, items } from './fixtures';
 
 test('with no items loaded, #withResource', t => {
-  const col = new RemoteCollection<Item>().withResource('a', items[0]);
+  const col = new Collection<Item>().withResource('a', items[0]);
   t.deepEqual(col.knownIds, RD.success<string[], string[]>(['a']), 'sets knownIds to returned id');
   t.deepEqual(
     col.entities,
@@ -14,7 +14,7 @@ test('with no items loaded, #withResource', t => {
 });
 
 test('with items loaded, #withResource on an existing ID', t => {
-  const col = new RemoteCollection<Item>()
+  const col = new Collection<Item>()
     .withList('id', items)
     .withResource('a', { id: 'a', foo: 'quux' });
   t.deepEqual(
@@ -33,7 +33,7 @@ test('with items loaded, #withResource on an existing ID', t => {
 });
 
 test('with items loaded, #withResource on an unknown ID', t => {
-  const col = new RemoteCollection<Item>()
+  const col = new Collection<Item>()
     .withList('id', items)
     .withResource('z', { id: 'z', foo: 'zed' });
   t.deepEqual(
@@ -53,7 +53,7 @@ test('with items loaded, #withResource on an unknown ID', t => {
 });
 
 test('with item loading failure, #withResource', t => {
-  const col = new RemoteCollection<Item>().withListFailure('Failed').withResource('a', items[0]);
+  const col = new Collection<Item>().withListFailure('Failed').withResource('a', items[0]);
   t.deepEqual(col.knownIds, RD.success<string[], string[]>(['a']), 'sets knownIds to returned id');
   t.deepEqual(
     col.entities,
