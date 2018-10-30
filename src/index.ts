@@ -55,7 +55,7 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public withList(idProp: string, list: Resource[]): Collection<Resource> {
+  public withList(idProp: keyof Resource, list: Resource[]): Collection<Resource> {
     const col = new Collection(this);
     const idsAndSuccesses: [string, Remote<Resource>][] = list.map(
       (resource: Resource): [string, Remote<Resource>] => [
@@ -165,7 +165,7 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return safeGet(this.entities, id);
   }
 
-  public concatResources(idProp: string, resources: Resource[]): Collection<Resource> {
+  public concatResources(idProp: keyof Resource, resources: Resource[]): Collection<Resource> {
     const col = new Collection(this);
 
     return resources.reduce((acc: Collection<Resource>, resource: Resource) => {
@@ -173,7 +173,7 @@ export default class Collection<Resource extends { [key: string]: any }> {
     }, col);
   }
 
-  public concat(idProp: string, other: Collection<Resource>): Collection<Resource> {
+  public concat(idProp: keyof Resource, other: Collection<Resource>): Collection<Resource> {
     const col = new Collection<Resource>(this);
 
     return other
