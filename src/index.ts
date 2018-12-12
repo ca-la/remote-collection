@@ -101,10 +101,11 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public map(mapFunction: (resource: Resource) => Resource): Collection<Resource> {
-    const col = new Collection(this);
-    col.entities = mapValues<RemoteById<Resource>, Remote<Resource>>(
-      col.entities,
+  public map<B>(mapFunction: (resource: Resource) => B): Collection<B> {
+    const col = new Collection<B>();
+    col.knownIds = this.knownIds.map(ids => ids.slice());
+    col.entities = mapValues<RemoteById<Resource>, Remote<B>>(
+      this.entities,
       (entity: Remote<Resource> | undefined) => (entity ? entity.map(mapFunction) : RD.initial)
     );
 

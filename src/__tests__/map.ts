@@ -3,7 +3,7 @@ import * as RD from '@cala/remote-data';
 import Collection from '../index';
 import { Item, items } from './fixtures';
 
-const loudFoo = (item: Item) => ({ id: item.id, foo: item.foo.toUpperCase() });
+const loudFoo = (item: Item) => ({ ...item, loud: item.foo.toUpperCase() });
 
 test('with no items loaded, #map', t => {
   const col = new Collection<Item>().map(loudFoo);
@@ -21,8 +21,8 @@ test('with items loaded, #map', t => {
   t.deepEqual(
     col.entities,
     {
-      a: RD.success<string[], Item>({ id: 'a', foo: 'BAR' }),
-      b: RD.success<string[], Item>({ id: 'b', foo: 'BAZ' })
+      a: RD.success<string[], any>({ id: 'a', foo: 'bar', loud: 'BAR' }),
+      b: RD.success<string[], any>({ id: 'b', foo: 'baz', loud: 'BAZ' })
     },
     'applies map function to each item'
   );
