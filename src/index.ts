@@ -1,5 +1,6 @@
 import { fromPairs, mapValues, omit, union, without } from 'lodash';
 import * as RD from '@cala/remote-data';
+import { insert, StrMap } from 'fp-ts/lib/StrMap';
 import { Option } from 'fp-ts/lib/Option';
 import { sequence } from 'fp-ts/lib/Traversable';
 import { array } from 'fp-ts/lib/Array';
@@ -34,11 +35,13 @@ export default class Collection<Resource extends { [key: string]: any }> {
   readonly _URI!: URI;
 
   public knownIds: RemoteList<string> = RD.initial;
+  public idMap: StrMap<RemoteList<string>> = new StrMap({});
   public entities: ById<Remote<Resource>> = {};
 
   constructor(fromCollection?: Collection<Resource>) {
     if (fromCollection) {
       this.knownIds = fromCollection.knownIds.map(ids => ids.slice());
+      this.idMap = new StrMap(fromCollection.idMap.value);
       this.entities = { ...fromCollection.entities };
     }
   }
@@ -55,6 +58,13 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
+  public withListAt(at: string, idProp: keyof Resource, list: Resource[]): Collection<Resource> {
+    const col = this.withList(idProp, list);
+    const ids = RD.success<string[], string[]>(list.map(resource => resource[idProp]));
+    col.idMap = insert(at, ids, col.idMap);
+    return col;
+  }
+
   public withList(idProp: keyof Resource, list: Resource[]): Collection<Resource> {
     const col = new Collection(this);
     const idsAndSuccesses: [string, Remote<Resource>][] = list.map(
@@ -66,6 +76,12 @@ export default class Collection<Resource extends { [key: string]: any }> {
     col.knownIds = RD.success(idsAndSuccesses.map(([id]) => id));
     col.entities = fromPairs(idsAndSuccesses);
 
+    return col;
+  }
+
+  public withListFailureAt(at: string, error: string): Collection<Resource> {
+    const col = this.withListFailure(error);
+    col.idMap = insert(at, RD.failure([error]), col.idMap);
     return col;
   }
 
