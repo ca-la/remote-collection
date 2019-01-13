@@ -1,6 +1,6 @@
 import { fromPairs, mapValues, omit, union, without } from 'lodash';
 import * as RD from '@cala/remote-data';
-import { insert, StrMap } from 'fp-ts/lib/StrMap';
+import { lookup, insert, StrMap } from 'fp-ts/lib/StrMap';
 import { Option } from 'fp-ts/lib/Option';
 import { sequence } from 'fp-ts/lib/Traversable';
 import { array } from 'fp-ts/lib/Array';
@@ -106,6 +106,15 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
+  public withResourceAt(at: string, id: string, resource: Resource): Collection<Resource> {
+    const col = this.withResource(id, resource);
+    const existingIds = lookup(at, col.idMap)
+      .getOrElse(RD.success([]))
+      .map(idList => idList.concat(id));
+    col.idMap = insert(at, existingIds, col.idMap);
+    return col;
+  }
+
   public withResource(id: string, resource: Resource): Collection<Resource> {
     const col = new Collection(this);
     col.knownIds = this.concatKnownId(id);
@@ -136,6 +145,15 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
+  public withResourceFailureAt(at: string, id: string, error: string): Collection<Resource> {
+    const col = this.withResourceFailure(id, error);
+    const existingIds = lookup(at, col.idMap)
+      .getOrElse(RD.success([]))
+      .map(idList => idList.concat(id));
+    col.idMap = insert(at, existingIds, col.idMap);
+    return col;
+  }
+
   public withResourceFailure(id: string, error: string): Collection<Resource> {
     const col = new Collection(this);
     col.knownIds = this.concatKnownId(id);
@@ -147,12 +165,36 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
+  public removeAt(at: string, id: string): Collection<Resource> {
+    const col = this.remove(id);
+    const existingIds = lookup(at, col.idMap)
+      .getOrElse(RD.success([]))
+      .map(idList => without(idList, id));
+    col.idMap = insert(at, existingIds, col.idMap);
+    return col;
+  }
+
   public remove(id: string): Collection<Resource> {
     const col = new Collection(this);
     col.knownIds = this.knownIds.map(ids => without(ids, id));
     col.entities = omit(this.entities, id);
 
     return col;
+  }
+
+  public viewAt(at: string): RemoteList<Resource> {
+    return lookup(at, this.idMap)
+      .getOrElse(RD.initial)
+      .caseOf<RemoteList<Resource>>({
+        failure: RD.failure,
+        initial: RD.initial,
+        pending: RD.pending,
+        refresh: knownIds =>
+          view(this.entities, knownIds)
+            .toOption()
+            .fold<RemoteList<Resource>>(RD.pending, RD.refresh),
+        success: knownIds => view(this.entities, knownIds)
+      });
   }
 
   public view(ids?: string[]): RemoteList<Resource> {
