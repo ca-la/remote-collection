@@ -30,6 +30,22 @@ const view = <A>(entities: RemoteById<A>, ids: string[]): RemoteList<A> => {
   );
 };
 
+const mergeIdMap = (
+  target: StrMap<RemoteList<string>>,
+  source: StrMap<RemoteList<string>>
+): StrMap<RemoteList<string>> => {
+  return source.reduceWithKey<StrMap<RemoteList<string>>>(
+    new StrMap<RemoteList<string>>(target.value),
+    (sourceKey, acc, remoteList) => {
+      const existingList = lookup(sourceKey, acc);
+      const concatenated = existingList.fold(remoteList, existing =>
+        existing.chain(list => remoteList.map(l => list.concat(l)))
+      );
+      return insert(sourceKey, concatenated, acc);
+    }
+  );
+};
+
 export default class Collection<Resource extends { [key: string]: any }> {
   readonly _A!: Resource;
   readonly _URI!: URI;
@@ -224,20 +240,22 @@ export default class Collection<Resource extends { [key: string]: any }> {
   }
 
   public concatResources(idProp: keyof Resource, resources: Resource[]): Collection<Resource> {
-    const col = new Collection(this);
-
-    return resources.reduce((acc: Collection<Resource>, resource: Resource) => {
-      return acc.withResource(resource[idProp], resource);
-    }, col);
+    return resources.reduce(
+      (acc, resource) => acc.withResource(resource[idProp], resource),
+      new Collection(this)
+    );
   }
 
   public concat(idProp: keyof Resource, other: Collection<Resource>): Collection<Resource> {
     const col = new Collection<Resource>(this);
 
-    return other
+    const concatenated = other
       .view()
       .toOption()
       .fold(col, (bResources: Resource[]) => col.concatResources(idProp, bResources));
+    concatenated.idMap = mergeIdMap(concatenated.idMap, other.idMap);
+
+    return concatenated;
   }
 
   private concatKnownId(id: string): RemoteList<string> {

@@ -25,6 +25,36 @@ test('with non-overlapping two collections', t => {
   );
 });
 
+test('with two collections that have id maps', t => {
+  const other = new Collection<Item>()
+    .withListAt('parentId', 'id', moreItems)
+    .withListAt('otherParentId', 'id', moreItems);
+  const col = new Collection<Item>().withListAt('parentId', 'id', items).concat('id', other);
+  t.deepEqual(
+    col.idMap.value,
+    {
+      parentId: RD.success<string[], string[]>(['a', 'b', 'c', 'd']),
+      otherParentId: RD.success<string[], string[]>(['c', 'd'])
+    },
+    'appends the additional ids'
+  );
+  t.deepEqual(
+    col.knownIds,
+    RD.success<string[], string[]>(['a', 'b', 'c', 'd']),
+    'appends the additional ids'
+  );
+  t.deepEqual(
+    col.entities,
+    {
+      a: RD.success<string[], Item>(items[0]),
+      b: RD.success<string[], Item>(items[1]),
+      c: RD.success<string[], Item>(moreItems[0]),
+      d: RD.success<string[], Item>(moreItems[1])
+    },
+    'appends the additional items'
+  );
+});
+
 test('with the same collection twice', t => {
   const other = new Collection<Item>().withList('id', items);
   const col = new Collection<Item>().withList('id', items).concat('id', other);
