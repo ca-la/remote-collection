@@ -62,6 +62,17 @@ export default class Collection<Resource extends { [key: string]: any }> {
     }
   }
 
+  public refreshAt(at: string): Collection<Resource> {
+    const col = new Collection(this);
+    const existingList = lookup(at, col.idMap)
+      .getOrElse(RD.pending)
+      .toOption()
+      .fold<RD.RemoteData<string[], string[]>>(RD.pending, RD.refresh);
+    col.idMap = insert(at, existingList, col.idMap);
+
+    return col;
+  }
+
   public refresh(): Collection<Resource> {
     const col = new Collection(this);
     col.knownIds = col.knownIds.toOption().fold<RemoteList<string>>(RD.pending, RD.refresh);
@@ -182,11 +193,15 @@ export default class Collection<Resource extends { [key: string]: any }> {
   }
 
   public removeAt(at: string, id: string): Collection<Resource> {
-    const col = this.remove(id);
-    const existingIds = lookup(at, col.idMap)
-      .getOrElse(RD.success([]))
-      .map(idList => without(idList, id));
-    col.idMap = insert(at, existingIds, col.idMap);
+    const col = new Collection(this);
+    const existingIds = lookup(at, col.idMap).map(remoteList =>
+      remoteList.map(idList => without(idList, id))
+    );
+
+    if (existingIds.isSome()) {
+      col.idMap = insert(at, existingIds.getOrElse(RD.initial), col.idMap);
+    }
+
     return col;
   }
 
