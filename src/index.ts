@@ -1,5 +1,6 @@
 import { fromPairs, mapValues, omit, union, without } from 'lodash';
 import * as RD from '@cala/remote-data';
+import { lookup, insert, StrMap } from 'fp-ts/lib/StrMap';
 import { Option } from 'fp-ts/lib/Option';
 import { sequence } from 'fp-ts/lib/Traversable';
 import { array } from 'fp-ts/lib/Array';
@@ -29,18 +30,47 @@ const view = <A>(entities: RemoteById<A>, ids: string[]): RemoteList<A> => {
   );
 };
 
+const mergeIdMap = (
+  target: StrMap<RemoteList<string>>,
+  source: StrMap<RemoteList<string>>
+): StrMap<RemoteList<string>> => {
+  return source.reduceWithKey<StrMap<RemoteList<string>>>(
+    new StrMap<RemoteList<string>>(target.value),
+    (sourceKey, acc, remoteList) => {
+      const existingList = lookup(sourceKey, acc);
+      const concatenated = existingList.fold(remoteList, existing =>
+        existing.chain(list => remoteList.map(l => list.concat(l)))
+      );
+      return insert(sourceKey, concatenated, acc);
+    }
+  );
+};
+
 export default class Collection<Resource extends { [key: string]: any }> {
   readonly _A!: Resource;
   readonly _URI!: URI;
 
   public knownIds: RemoteList<string> = RD.initial;
+  public idMap: StrMap<RemoteList<string>> = new StrMap({});
   public entities: ById<Remote<Resource>> = {};
 
   constructor(fromCollection?: Collection<Resource>) {
     if (fromCollection) {
       this.knownIds = fromCollection.knownIds.map(ids => ids.slice());
+      this.idMap = new StrMap(fromCollection.idMap.value);
       this.entities = { ...fromCollection.entities };
     }
+  }
+
+  public refreshAt(at: string): Collection<Resource> {
+    const col = new Collection(this);
+    const existingList = lookup(at, col.idMap)
+      .getOrElse(RD.pending)
+      .toOption()
+      .fold<RD.RemoteData<string[], string[]>>(RD.pending, RD.refresh);
+    col.idMap = insert(at, existingList, col.idMap);
+
+    return col;
   }
 
   public refresh(): Collection<Resource> {
@@ -55,6 +85,13 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
+  public withListAt(at: string, idProp: keyof Resource, list: Resource[]): Collection<Resource> {
+    const col = this.withList(idProp, list);
+    const ids = RD.success<string[], string[]>(list.map(resource => resource[idProp]));
+    col.idMap = insert(at, ids, col.idMap);
+    return col;
+  }
+
   public withList(idProp: keyof Resource, list: Resource[]): Collection<Resource> {
     const col = new Collection(this);
     const idsAndSuccesses: [string, Remote<Resource>][] = list.map(
@@ -66,6 +103,12 @@ export default class Collection<Resource extends { [key: string]: any }> {
     col.knownIds = RD.success(idsAndSuccesses.map(([id]) => id));
     col.entities = fromPairs(idsAndSuccesses);
 
+    return col;
+  }
+
+  public withListFailureAt(at: string, error: string): Collection<Resource> {
+    const col = this.withListFailure(error);
+    col.idMap = insert(at, RD.failure([error]), col.idMap);
     return col;
   }
 
@@ -87,6 +130,15 @@ export default class Collection<Resource extends { [key: string]: any }> {
       )
     };
 
+    return col;
+  }
+
+  public withResourceAt(at: string, id: string, resource: Resource): Collection<Resource> {
+    const col = this.withResource(id, resource);
+    const existingIds = lookup(at, col.idMap)
+      .getOrElse(RD.success([]))
+      .map(idList => idList.concat(id));
+    col.idMap = insert(at, existingIds, col.idMap);
     return col;
   }
 
@@ -120,6 +172,15 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
+  public withResourceFailureAt(at: string, id: string, error: string): Collection<Resource> {
+    const col = this.withResourceFailure(id, error);
+    const existingIds = lookup(at, col.idMap)
+      .getOrElse(RD.success([]))
+      .map(idList => idList.concat(id));
+    col.idMap = insert(at, existingIds, col.idMap);
+    return col;
+  }
+
   public withResourceFailure(id: string, error: string): Collection<Resource> {
     const col = new Collection(this);
     col.knownIds = this.concatKnownId(id);
@@ -131,12 +192,40 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
+  public removeAt(at: string, id: string): Collection<Resource> {
+    const col = new Collection(this);
+    const existingIds = lookup(at, col.idMap).map(remoteList =>
+      remoteList.map(idList => without(idList, id))
+    );
+
+    if (existingIds.isSome()) {
+      col.idMap = insert(at, existingIds.getOrElse(RD.initial), col.idMap);
+    }
+
+    return col;
+  }
+
   public remove(id: string): Collection<Resource> {
     const col = new Collection(this);
     col.knownIds = this.knownIds.map(ids => without(ids, id));
     col.entities = omit(this.entities, id);
 
     return col;
+  }
+
+  public viewAt(at: string): RemoteList<Resource> {
+    return lookup(at, this.idMap)
+      .getOrElse(RD.initial)
+      .caseOf<RemoteList<Resource>>({
+        failure: RD.failure,
+        initial: RD.initial,
+        pending: RD.pending,
+        refresh: knownIds =>
+          view(this.entities, knownIds)
+            .toOption()
+            .fold<RemoteList<Resource>>(RD.pending, RD.refresh),
+        success: knownIds => view(this.entities, knownIds)
+      });
   }
 
   public view(ids?: string[]): RemoteList<Resource> {
@@ -166,20 +255,22 @@ export default class Collection<Resource extends { [key: string]: any }> {
   }
 
   public concatResources(idProp: keyof Resource, resources: Resource[]): Collection<Resource> {
-    const col = new Collection(this);
-
-    return resources.reduce((acc: Collection<Resource>, resource: Resource) => {
-      return acc.withResource(resource[idProp], resource);
-    }, col);
+    return resources.reduce(
+      (acc, resource) => acc.withResource(resource[idProp], resource),
+      new Collection(this)
+    );
   }
 
   public concat(idProp: keyof Resource, other: Collection<Resource>): Collection<Resource> {
     const col = new Collection<Resource>(this);
 
-    return other
+    const concatenated = other
       .view()
       .toOption()
       .fold(col, (bResources: Resource[]) => col.concatResources(idProp, bResources));
+    concatenated.idMap = mergeIdMap(concatenated.idMap, other.idMap);
+
+    return concatenated;
   }
 
   private concatKnownId(id: string): RemoteList<string> {
