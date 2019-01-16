@@ -1,6 +1,6 @@
 import { fromPairs, mapValues, omit, union, without } from 'lodash';
 import * as RD from '@cala/remote-data';
-import { lookup, insert, StrMap } from 'fp-ts/lib/StrMap';
+import { lookup, insert, StrMap, toArray } from 'fp-ts/lib/StrMap';
 import { Option } from 'fp-ts/lib/Option';
 import { sequence } from 'fp-ts/lib/Traversable';
 import { array } from 'fp-ts/lib/Array';
@@ -34,16 +34,13 @@ const mergeIdMap = (
   target: StrMap<RemoteList<string>>,
   source: StrMap<RemoteList<string>>
 ): StrMap<RemoteList<string>> => {
-  return source.reduceWithKey<StrMap<RemoteList<string>>>(
-    new StrMap<RemoteList<string>>(target.value),
-    (sourceKey, acc, remoteList) => {
-      const existingList = lookup(sourceKey, acc);
-      const concatenated = existingList.fold(remoteList, existing =>
-        existing.chain(list => remoteList.map(l => list.concat(l)))
-      );
-      return insert(sourceKey, concatenated, acc);
-    }
-  );
+  return toArray(source).reduce((acc, [sourceKey, remoteList]) => {
+    const existingList = lookup(sourceKey, acc);
+    const concatenated = existingList.fold(remoteList, existing =>
+      existing.chain(list => remoteList.map(l => list.concat(l)))
+    );
+    return insert(sourceKey, concatenated, acc);
+  }, new StrMap<RemoteList<string>>(target.value));
 };
 
 export default class Collection<Resource extends { [key: string]: any }> {
