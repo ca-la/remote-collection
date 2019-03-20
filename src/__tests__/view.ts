@@ -52,3 +52,8 @@ test('with items loaded, #view with invalid IDs', t => {
   t.deepEqual(col.view(['x', 'y']), RD.success([]), 'returns an empty success');
   t.deepEqual(col.view(['z']), RD.success([]), 'returns an empty success');
 });
+
+test('with items loaded, #view with valid and invalid IDs', t => {
+  const col = new Collection<Item>().withList('id', items);
+  t.deepEqual(col.view(['a', 'x', 'y']), RD.success([items[0]]), 'returns an empty success');
+});

@@ -7,27 +7,27 @@ test('with no items loaded, #viewAsArray with no passed IDs', t => {
   t.deepEqual(col.viewAsArray(), [], 'returns an empty array');
 });
 
-test('with no items loaded, #view with invalid IDs', t => {
+test('with no items loaded, #viewAsArray with invalid IDs', t => {
   const col = new Collection<Item>();
   t.deepEqual(col.viewAsArray(['x', 'y', 'z']), [], 'returns an empty array');
 });
 
-test('with item loading errors, #view with no passed IDs', t => {
+test('with item loading errors, #viewAsArray with no passed IDs', t => {
   const col = new Collection<Item>().withListFailure('There was a problem loading the list');
   t.deepEqual(col.viewAsArray(), [], 'returns an empty array');
 });
 
-test('with item loading errors, #view with IDs', t => {
+test('with item loading errors, #viewAsArray with IDs', t => {
   const col = new Collection<Item>().withListFailure('There was a problem loading the list');
   t.deepEqual(col.viewAsArray(['a']), [], 'returns an empty array');
 });
 
-test('with items loaded, #view with no passed IDs', t => {
+test('with items loaded, #viewAsArray with no passed IDs', t => {
   const col = new Collection<Item>().withList('id', items);
   t.deepEqual(col.viewAsArray(), items, 'returns all known items');
 });
 
-test('with items loaded, #view with valid IDs', t => {
+test('with items loaded, #viewAsArray with valid IDs', t => {
   const col = new Collection<Item>().withList('id', items);
   t.deepEqual(col.viewAsArray(['a', 'b']), items, 'returns subset');
   t.deepEqual(
@@ -38,8 +38,13 @@ test('with items loaded, #view with valid IDs', t => {
   t.deepEqual(col.viewAsArray(['b']), [items[1]], 'returns a single item array');
 });
 
-test('with items loaded, #view with invalid IDs', t => {
+test('with items loaded, #viewAsArray with invalid IDs', t => {
   const col = new Collection<Item>().withList('id', items);
   t.deepEqual(col.viewAsArray(['x', 'y']), [], 'returns an empty array');
   t.deepEqual(col.viewAsArray(['z']), [], 'returns an empty array');
+});
+
+test('with items loaded, #viewAsArray with valid and invalid IDs', t => {
+  const col = new Collection<Item>().withList('id', items);
+  t.deepEqual(col.viewAsArray(['a', 'x', 'y']), [items[0]], 'returns the valid one');
 });
