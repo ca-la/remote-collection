@@ -1,7 +1,6 @@
 import { fromPairs, mapValues, omit, union, without } from 'lodash';
 import * as RD from '@cala/remote-data';
 import { lookup, insert, StrMap, toArray } from 'fp-ts/lib/StrMap';
-import { Option } from 'fp-ts/lib/Option';
 import { sequence } from 'fp-ts/lib/Traversable';
 import { array } from 'fp-ts/lib/Array';
 
@@ -247,8 +246,8 @@ export default class Collection<Resource extends { [key: string]: any }> {
     });
   }
 
-  public find(id: string): Option<Remote<Resource>> {
-    return safeGet(this.entities, id);
+  public find(id: string): Remote<Resource> {
+    return safeGet(this.entities, id).getOrElse(RD.initial);
   }
 
   public concatResources(idProp: keyof Resource, resources: Resource[]): Collection<Resource> {
