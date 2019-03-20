@@ -249,6 +249,17 @@ export default class Collection<Resource extends { [key: string]: any }> {
   public find(id: string): Remote<Resource> {
     return safeGet(this.entities, id).getOrElse(RD.initial);
   }
+  public viewAsArray(ids?: string[]): Resource[] {
+    return this.view(ids).getOrElse([]);
+  }
+
+  public viewAtAsArray(at: string): Resource[] {
+    return this.viewAt(at).getOrElse([]);
+  }
+
+  public findAsNullable(id: string): Resource | null {
+    return this.find(id).toNullable();
+  }
 
   public concatResources(idProp: keyof Resource, resources: Resource[]): Collection<Resource> {
     return resources.reduce(

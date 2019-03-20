@@ -216,3 +216,20 @@ test('#viewAt, with a some successes and a failure', t => {
     'Returns the successful items'
   );
 });
+
+test('#viewAtAsArray, with items loaded', t => {
+  const col = new Collection<Item>().withListAt('parentId', 'id', items);
+  t.deepEqual(col.viewAtAsArray('parentId'), [items[0], items[1]], 'Returns the successful items');
+});
+
+test('#viewAtAsArray, with no items loaded', t => {
+  const col = new Collection<Item>();
+  t.deepEqual(col.viewAtAsArray('parentId'), [], 'Returns initial');
+});
+
+test('#viewAtAsArray, with a some successes and a failure', t => {
+  const col = new Collection<Item>()
+    .withListAt('parentId', 'id', items)
+    .withResourceFailureAt('parentId', 'c', 'Something went wrong!');
+  t.deepEqual(col.viewAtAsArray('parentId'), [], 'Returns the successful items');
+});
