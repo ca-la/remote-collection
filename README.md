@@ -41,5 +41,192 @@ to account for, etc.
 
 ### Usage
 
-Updated usage documentation coming soon. For now, please see the very
-comprehensive tests for examples of normal usage.
+<hr />
+
+#### `new RemoteCollection<Resource>(collection?: RemoteCollection<Resource)`
+
+Creates a new `RemoteCollection` of a generic `Resource` type. If you pass in
+another `RemoteCollection<Resource>` to the constructor, it will merge the
+resources.
+
+<hr />
+
+#### `.withList(idProp: keyof Resource, list: Resource[]): RemoteCollection<Resource>`
+#### `.withListAt(key: string, idProp: keyof Resource, list: Resource[]): RemoteCollection<Resource>`
+
+This method adds a list of resources to the `RemoteCollection` representing the
+normal success-case for fetching the collection.
+
+The `At` version adds the resources to the underlying resource map, but stores
+the list of IDs at a specific key so you can retrieve this set of resources by
+that key. Useful for sub-resources (Post by User), pagination, filtered views,
+etc. Resources themselves are normalized by the `idProp`, so if two `At` views
+share some resources in common, they both point to the same underlying resource.
+
+<hr />
+
+#### `.withResource(id: string, resource: Resource): RemoteCollection<Resource>`
+#### `.withResourceAt(key: string, id: string, resource: Resource): RemoteCollection<Resource>`
+
+This method adds a single resource to the `RemoteCollection` representing the
+normal success-case for fetching the collection. It appends the item to the end
+of the list of known IDs that is retrieved when you call `view`.
+
+The `At` version adds the resource to the underlying resource map, but stores
+the new ID at a specific key so you can retrieve this set of resources by that
+key. Useful for sub-resources (Post by User), pagination, filtered views, etc.
+Resources themselves are normalized by the `idProp`, so if two `At` views share
+some resources in common, they both point to the same underlying resource.
+
+<hr />
+
+#### `.withListFailure(error: string): RemoteCollection<Resource>`
+#### `.withListFailureAt(key: string, error: string): RemoteCollection<Resource>`
+
+If requesting the list fails, calling this method will store a `RemoteFailure`
+with the passed `string`.
+
+The `At` version adds the failure only to the stored list of resources at the
+specified key, but doesn't interfer with other keys or the resource map itself.
+
+<hr />
+
+#### `.withResourceFailure(id: string, error: string): RemoteCollection<Resource>`
+#### `.withResourceFailureAt(key: string, id: string, error: string): RemoteCollection<Resource>`
+
+If requesting a single resource fails, calling this method will store a
+`RemoteFailure` with the passed `string` in the resource map for just this
+resource.
+
+The `At` version differs only in that requesting the view at the specified key
+will now see the newly errored resource.
+
+<hr />
+
+#### `.find(id: string): RemoteData<string[], Resource>`
+
+Lookup a resource by its `idProp`. **NOTE**: If the resource has never been
+requested, or has been removed, we return `RemoteInitial` indicating that is has
+not been retrieved.
+
+```ts
+const collection = new RemoteCollection<User>();
+
+assert.deepStrictEqual(
+  collection.find('a'),
+  RemoteData.initial
+);
+
+assert.deepStrictEqual(
+  collection.withResource('id', { id: 'a', name: 'Alice' }).find('a'),
+  RemoteData.success({ id: 'a', name: 'Alice' })
+);
+
+assert.deepStrictEqual(
+  collection.withResourceFailure('b', 'Not authorized').find('b'),
+  RemoteData.failure(['Not authorized'])
+);
+```
+
+<hr />
+
+#### `.view(ids?: string[]): RemoteData<string[], Resource[]>`
+#### `.viewAt(key: string): RemoteData<string[], Resource[]>`
+
+Without any arguments will return the list known resources. The `At` version
+gets the list that was stored at the given key via `withListAt`,
+`withResourceAt`, `withFailureAt`. If `view` is given a list of `id` strings, it
+will attempt to lookup the resources by those IDs and return them in the same
+order. Missing IDs will be omitted entirely.
+
+Here is a break down of what to expect:
+
+- If the list was successfully retrieved, and all resources corresponding to the
+  IDs in that list are successful (meaning they haven't later been updated to
+  other `RemoteData` states), you will receive a `RemoteSuccess` containing a
+  list of all of the resources.
+  
+  ```ts
+  const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
+  const collection = new RemoteCollection<User>().withList('id', users);
+  assert.deepStrictEqual(collection.view(), RemoteData.success(users));
+  ```
+- If there was a failure when retrieving the list, you will receive the
+  `RemoteFailure` with the failure string.
+  ```ts
+  const collection = new RemoteCollection<User>()
+    .withListFailure('Not authorized');
+  assert.deepStrictEqual(
+    collection.view(),
+    RemoteData.failure(['Not authorized'])
+  );
+  ```
+- If retrieving the list succeeded, but later some subset of the resources had a failure, you will receive all of the failure strings in the `RemoteFailure`.
+  ```ts
+  const users: User[] = [
+    { id: 'a', name: 'Alice' },
+    { id: 'b', name: 'Bob' },
+    { id: 'c', name: 'Charlie' }
+  ];
+  const collection = new RemoteCollection<User>()
+    .withList('id', users)
+    .withResourceFailure('a', 'Bad request')
+    .withResourceFailure('c', 'Conflict');
+
+  assert.deepStrictEqual(
+    collection.view(),
+    RemoteData.failure(['Bad request', 'Conflict'])
+  );
+  ```
+- If the list, or any resource, is `RemoteInitial` or `RemotePending`, you will
+  receive that value, even if some of them are `RemoteFailure`, `RemoteSuccess`,
+  or `RemoteRefresh`.
+  ```ts
+  const users: User[] = [
+    { id: 'a', name: 'Alice' },
+    { id: 'b', name: 'Bob' },
+    { id: 'c', name: 'Charlie' }
+  ];
+  const collection = new RemoteCollection<User>()
+    .withList('id', users)
+    .fetch('d');
+
+  assert.deepStrictEqual(
+    collection.view(),
+    RemoteData.pending
+  );
+  ```
+
+<hr />
+
+#### `.remove(id: string): RemoteCollection<Resource>`
+#### `.removeAt(key: string, id: string): RemoteCollection<Resource>`
+
+Removes the resource indicated by the `id`. The `At` version _only_ removes the
+resource from the list at the indicated key. If the resource is also available
+at other keys, it will still be there.
+
+```ts
+const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
+const collection = new RemoteCollection<User>()
+  .withList('id', users);
+  
+assert.deepStrictEqual(
+  collection.view(),
+  RemoteData.success(users)
+);
+
+assert.deepStrictEqual(
+  collection.remove('a').view(),
+  RemoteData.success([users[1]])
+);
+```
+
+<hr />
+
+#### `.concatResources(idProp: keyof Resource, resources: Resource[]): RemoteCollection<Resource>`
+
+If you need to append to the list, instead of replacing them, use this method.
+It is very similar to `withList`.
+
+<hr />
