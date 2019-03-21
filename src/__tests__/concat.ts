@@ -1,13 +1,13 @@
 import test from 'ava';
 import * as RD from '@cala/remote-data';
-import Collection from '../index';
+import RemoteCollection from '../index';
 import { Item, items } from './fixtures';
 
 const moreItems = [{ id: 'c', foo: 'test' }, { id: 'd', foo: 'test' }];
 
 test('with non-overlapping two collections', t => {
-  const other = new Collection<Item>().withList('id', moreItems);
-  const col = new Collection<Item>().withList('id', items).concat('id', other);
+  const other = new RemoteCollection<Item>().withList('id', moreItems);
+  const col = new RemoteCollection<Item>().withList('id', items).concat('id', other);
   t.deepEqual(
     col.knownIds,
     RD.success<string[], string[]>(['a', 'b', 'c', 'd']),
@@ -26,10 +26,10 @@ test('with non-overlapping two collections', t => {
 });
 
 test('with two collections that have id maps', t => {
-  const other = new Collection<Item>()
+  const other = new RemoteCollection<Item>()
     .withListAt('parentId', 'id', moreItems)
     .withListAt('otherParentId', 'id', moreItems);
-  const col = new Collection<Item>().withListAt('parentId', 'id', items).concat('id', other);
+  const col = new RemoteCollection<Item>().withListAt('parentId', 'id', items).concat('id', other);
   t.deepEqual(
     col.idMap.value,
     {
@@ -56,8 +56,8 @@ test('with two collections that have id maps', t => {
 });
 
 test('with the same collection twice', t => {
-  const other = new Collection<Item>().withList('id', items);
-  const col = new Collection<Item>().withList('id', items).concat('id', other);
+  const other = new RemoteCollection<Item>().withList('id', items);
+  const col = new RemoteCollection<Item>().withList('id', items).concat('id', other);
   t.deepEqual(col.knownIds, RD.success<string[], string[]>(['a', 'b']), 'does not update ids');
   t.deepEqual(
     col.entities,
@@ -70,8 +70,8 @@ test('with the same collection twice', t => {
 });
 
 test('with an empty collection', t => {
-  const other = new Collection<Item>();
-  const col = new Collection<Item>().withList('id', items).concat('id', other);
+  const other = new RemoteCollection<Item>();
+  const col = new RemoteCollection<Item>().withList('id', items).concat('id', other);
   t.deepEqual(col.knownIds, RD.success<string[], string[]>(['a', 'b']), 'does not update ids');
   t.deepEqual(
     col.entities,
