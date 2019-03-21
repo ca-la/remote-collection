@@ -41,8 +41,15 @@ resources.
 
 ### Signature
 ```ts
-export default class Collection<Resource extends { [key: string]: any }> {
-  constructor(fromCollection?: RemoteCollection<Resource>) {
+RemoteCollection<Resource extends { [key: string]: any }>(fromCollection?: RemoteCollection<Resource>)
+```
+
+### Examples
+```ts
+// Initialize a new empty RemoteCollection where the wrapped resource is a `User`
+const collection = new RemoteCollection<User>();
+// Initialize a new RemoteCollection merging in an existing collection
+const merged = new RemoteCollection<User>(collection);
 ```
 
 ## fetch
