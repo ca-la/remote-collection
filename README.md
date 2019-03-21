@@ -166,7 +166,7 @@ with the passed `string`.
 
 ### Signature
 ```ts
-withResourceAt(at: string, id: string, resource: Resource): RemoteCollection<Resource>
+withListFailure(error: string): Collection<Resource>
 ```
 
 ## withListFailureAt
@@ -177,7 +177,7 @@ itself.
 
 ### Signature
 ```ts
-withResourceAt(at: string, id: string, resource: Resource): RemoteCollection<Resource>
+withListFailureAt(at: string, error: string): Collection<Resource>
 ```
 
 ## withResourceFailure
@@ -209,7 +209,7 @@ not been retrieved.
 
 ### Signature
 ```ts
-find(id: string): Remote<Resource>
+find(id: string): RemoteData<string[], Resource>
 ```
 
 ### Example
