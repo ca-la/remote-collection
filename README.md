@@ -4,11 +4,11 @@ A TypeScript `RemoteData` Collection class
 <hr />
 
 There have been a number of articles written about using Algebraic Data Types to
-describe the states that data fetching entails. Replacing all of the
-`isFetching` and other ergonomics patterns with a clean pseudo-pattern-matching
-pattern is nice, but there is still a lot of room to improve on the ergonomics
-of dealing with remote data. `remote-collection` aims to provide a user-friendly
-experience to the user while keeping 100% type-safety.
+describe the states that data fetching entails. Replacing `isFetching` and other
+patterns with a cleaner explicit expressions of each state is nice, but there is
+still a lot of room to improve on the developer experience of dealing with
+remote data in the real world. `remote-collection` aims to provide a
+user-friendly experience while keeping 100% type-safety.
 
 A typical REST API lets you interface with remote `Resource`s through well-known
 HTTP patterns. A `User` resource, for instance, might be accessible by making a
