@@ -172,7 +172,7 @@ withListFailure(error: string): Collection<Resource>
 ## withListFailureAt
 
 Like `withListFailure` but adds the failure only to the stored list of resources
-at the specified key, but doesn't interfer with other keys or the resource map
+at the specified key, but doesn't interfere with other keys or the resource map
 itself.
 
 ### Signature
