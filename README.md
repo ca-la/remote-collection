@@ -36,7 +36,7 @@ to account for, etc.
 ## RemoteCollection
 
 Creates a new `RemoteCollection` of a generic `Resource` type. If you pass in
-another `RemoteRemoteCollection<Resource>` to the constructor, it will merge the
+another `RemoteCollection<Resource>` to the constructor, it will merge the
 resources.
 
 ### Signature
