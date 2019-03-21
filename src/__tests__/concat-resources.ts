@@ -1,12 +1,12 @@
 import test from 'ava';
 import * as RD from '@cala/remote-data';
-import Collection from '../index';
+import RemoteCollection from '../index';
 import { Item, items } from './fixtures';
 
 const moreItems = [{ id: 'c', foo: 'test' }, { id: 'd', foo: 'test' }];
 
 test('with no items loaded, #withList', t => {
-  const col = new Collection<Item>().withList('id', items).concatResources('id', moreItems);
+  const col = new RemoteCollection<Item>().withList('id', items).concatResources('id', moreItems);
   t.deepEqual(
     col.knownIds,
     RD.success<string[], string[]>(['a', 'b', 'c', 'd']),
@@ -25,7 +25,7 @@ test('with no items loaded, #withList', t => {
 });
 
 test('with item loading failure, #withList', t => {
-  const col = new Collection<Item>().withListFailure('Failed').concatResources('id', items);
+  const col = new RemoteCollection<Item>().withListFailure('Failed').concatResources('id', items);
   t.deepEqual(
     col.knownIds,
     RD.success<string[], string[]>(['a', 'b']),

@@ -11,7 +11,7 @@ export const URI = '@cala/remote-collection';
 export type URI = typeof URI;
 declare module 'fp-ts/lib/HKT' {
   interface URI2HKT1<A> {
-    '@cala/remote-collection': Collection<A>;
+    '@cala/remote-collection': RemoteCollection<A>;
   }
 }
 
@@ -42,7 +42,7 @@ const mergeIdMap = (
   }, new StrMap<RemoteList<string>>(target.value));
 };
 
-export default class Collection<Resource extends { [key: string]: any }> {
+export default class RemoteCollection<Resource extends { [key: string]: any }> {
   readonly _A!: Resource;
   readonly _URI!: URI;
 
@@ -50,7 +50,7 @@ export default class Collection<Resource extends { [key: string]: any }> {
   public idMap: StrMap<RemoteList<string>> = new StrMap({});
   public entities: ById<Remote<Resource>> = {};
 
-  constructor(fromCollection?: Collection<Resource>) {
+  constructor(fromCollection?: RemoteCollection<Resource>) {
     if (fromCollection) {
       this.knownIds = fromCollection.knownIds.map(ids => ids.slice());
       this.idMap = new StrMap(fromCollection.idMap.value);
@@ -58,8 +58,8 @@ export default class Collection<Resource extends { [key: string]: any }> {
     }
   }
 
-  public refreshAt(at: string): Collection<Resource> {
-    const col = new Collection(this);
+  public refreshAt(at: string): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this);
     const existingList = lookup(at, col.idMap)
       .getOrElse(RD.pending)
       .toOption()
@@ -69,8 +69,8 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public refresh(): Collection<Resource> {
-    const col = new Collection(this);
+  public refresh(): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this);
     col.knownIds = col.knownIds.toOption().fold<RemoteList<string>>(RD.pending, RD.refresh);
     col.entities = mapValues<RemoteById<Resource>, Remote<Resource>>(
       col.entities,
@@ -81,15 +81,19 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public withListAt(at: string, idProp: keyof Resource, list: Resource[]): Collection<Resource> {
+  public withListAt(
+    at: string,
+    idProp: keyof Resource,
+    list: Resource[]
+  ): RemoteCollection<Resource> {
     const col = this.withList(idProp, list);
     const ids = RD.success<string[], string[]>(list.map(resource => resource[idProp]));
     col.idMap = insert(at, ids, col.idMap);
     return col;
   }
 
-  public withList(idProp: keyof Resource, list: Resource[]): Collection<Resource> {
-    const col = new Collection(this);
+  public withList(idProp: keyof Resource, list: Resource[]): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this);
     const idsAndSuccesses: [string, Remote<Resource>][] = list.map(
       (resource: Resource): [string, Remote<Resource>] => [
         resource[idProp],
@@ -102,22 +106,22 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public withListFailureAt(at: string, error: string): Collection<Resource> {
+  public withListFailureAt(at: string, error: string): RemoteCollection<Resource> {
     const col = this.withListFailure(error);
     col.idMap = insert(at, RD.failure([error]), col.idMap);
     return col;
   }
 
-  public withListFailure(error: string): Collection<Resource> {
-    const col = new Collection(this);
+  public withListFailure(error: string): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this);
     col.knownIds = RD.failure([error]);
     col.entities = {};
 
     return col;
   }
 
-  public fetch(id: string): Collection<Resource> {
-    const col = new Collection(this);
+  public fetch(id: string): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this);
     const currentValue = safeGet(this.entities, id);
     col.entities = {
       ...this.entities,
@@ -129,7 +133,7 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public withResourceAt(at: string, id: string, resource: Resource): Collection<Resource> {
+  public withResourceAt(at: string, id: string, resource: Resource): RemoteCollection<Resource> {
     const col = this.withResource(id, resource);
     const existingIds = lookup(at, col.idMap)
       .getOrElse(RD.success([]))
@@ -138,8 +142,8 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public withResource(id: string, resource: Resource): Collection<Resource> {
-    const col = new Collection(this);
+  public withResource(id: string, resource: Resource): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this);
     col.knownIds = this.concatKnownId(id);
     col.entities = {
       ...this.entities,
@@ -152,8 +156,8 @@ export default class Collection<Resource extends { [key: string]: any }> {
   public mapResource(
     id: string,
     mapFunction: (resource: Resource) => Resource
-  ): Collection<Resource> {
-    const col = new Collection(this);
+  ): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this);
 
     const existingResource = col.entities[id];
     if (!existingResource) {
@@ -168,7 +172,7 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public withResourceFailureAt(at: string, id: string, error: string): Collection<Resource> {
+  public withResourceFailureAt(at: string, id: string, error: string): RemoteCollection<Resource> {
     const col = this.withResourceFailure(id, error);
     const existingIds = lookup(at, col.idMap)
       .getOrElse(RD.success([]))
@@ -177,8 +181,8 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public withResourceFailure(id: string, error: string): Collection<Resource> {
-    const col = new Collection(this);
+  public withResourceFailure(id: string, error: string): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this);
     col.knownIds = this.concatKnownId(id);
     col.entities = {
       ...this.entities,
@@ -188,8 +192,8 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public removeAt(at: string, id: string): Collection<Resource> {
-    const col = new Collection(this);
+  public removeAt(at: string, id: string): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this);
     const existingIds = lookup(at, col.idMap).map(remoteList =>
       remoteList.map(idList => without(idList, id))
     );
@@ -201,8 +205,8 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public remove(id: string): Collection<Resource> {
-    const col = new Collection(this);
+  public remove(id: string): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this);
     col.knownIds = this.knownIds.map(ids => without(ids, id));
     col.entities = omit(this.entities, id);
 
@@ -250,15 +254,21 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return safeGet(this.entities, id).getOrElse(RD.initial);
   }
 
-  public concatResources(idProp: keyof Resource, resources: Resource[]): Collection<Resource> {
+  public concatResources(
+    idProp: keyof Resource,
+    resources: Resource[]
+  ): RemoteCollection<Resource> {
     return resources.reduce(
       (acc, resource) => acc.withResource(resource[idProp], resource),
-      new Collection(this)
+      new RemoteCollection(this)
     );
   }
 
-  public concat(idProp: keyof Resource, other: Collection<Resource>): Collection<Resource> {
-    const col = new Collection<Resource>(this);
+  public concat(
+    idProp: keyof Resource,
+    other: RemoteCollection<Resource>
+  ): RemoteCollection<Resource> {
+    const col = new RemoteCollection<Resource>(this);
 
     const concatenated = other
       .view()

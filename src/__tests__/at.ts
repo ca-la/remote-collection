@@ -1,12 +1,12 @@
 import test from 'ava';
 import * as RD from '@cala/remote-data';
-import Collection from '../index';
+import RemoteCollection from '../index';
 import { Item, items } from './fixtures';
 
 const moreItems = [{ id: 'c', foo: 'test' }, { id: 'd', foo: 'test' }];
 
 test('#withListAt', t => {
-  const col = new Collection<Item>().withListAt('parentId', 'id', items);
+  const col = new RemoteCollection<Item>().withListAt('parentId', 'id', items);
   t.deepEqual(
     col.knownIds,
     RD.success<string[], string[]>(['a', 'b']),
@@ -28,7 +28,7 @@ test('#withListAt', t => {
 });
 
 test('#withListAt, twice', t => {
-  const col = new Collection<Item>()
+  const col = new RemoteCollection<Item>()
     .withListAt('parentId', 'id', items)
     .withListAt('parentId', 'id', moreItems);
   t.deepEqual(
@@ -52,7 +52,7 @@ test('#withListAt, twice', t => {
 });
 
 test('#withListFailureAt', t => {
-  const col = new Collection<Item>().withListFailureAt('parentId', 'Something went wrong!');
+  const col = new RemoteCollection<Item>().withListFailureAt('parentId', 'Something went wrong!');
   t.deepEqual(
     col.knownIds,
     RD.failure<string[], string[]>(['Something went wrong!']),
@@ -67,7 +67,7 @@ test('#withListFailureAt', t => {
 });
 
 test('#withResourceAt, with no existing items', t => {
-  const col = new Collection<Item>().withResourceAt('parentId', items[0].id, items[0]);
+  const col = new RemoteCollection<Item>().withResourceAt('parentId', items[0].id, items[0]);
   t.deepEqual(
     col.knownIds,
     RD.success<string[], string[]>(['a']),
@@ -88,7 +88,7 @@ test('#withResourceAt, with no existing items', t => {
 });
 
 test('#withResourceAt, with existing items', t => {
-  const col = new Collection<Item>()
+  const col = new RemoteCollection<Item>()
     .withResourceAt('parentId', items[0].id, items[0])
     .withResourceAt('parentId', items[1].id, items[1]);
   t.deepEqual(
@@ -112,7 +112,7 @@ test('#withResourceAt, with existing items', t => {
 });
 
 test('#withResourceFailureAt, with existing succesful items', t => {
-  const col = new Collection<Item>()
+  const col = new RemoteCollection<Item>()
     .withResourceAt('parentId', items[0].id, items[0])
     .withResourceFailureAt('parentId', items[1].id, 'Something went wrong!');
   t.deepEqual(
@@ -136,14 +136,14 @@ test('#withResourceFailureAt, with existing succesful items', t => {
 });
 
 test('#removeAt, with no items loaded', t => {
-  const col = new Collection<Item>().removeAt('parentId', 'a');
+  const col = new RemoteCollection<Item>().removeAt('parentId', 'a');
   t.deepEqual(col.knownIds, RD.initial, 'Does not add to list of known IDs');
   t.deepEqual(col.idMap.value, {}, 'Does not add to ID map');
   t.deepEqual(col.entities, {}, 'Does not add to entity map');
 });
 
 test('#removeAt, with items loaded', t => {
-  const col = new Collection<Item>()
+  const col = new RemoteCollection<Item>()
     .withListAt('parentId', 'id', items)
     .removeAt('parentId', 'a')
     .removeAt('parentId', 'notFound');
@@ -170,7 +170,7 @@ test('#removeAt, with items loaded', t => {
 });
 
 test('#refreshAt, with items loaded', t => {
-  const col = new Collection<Item>().withListAt('parentId', 'id', items).refreshAt('parentId');
+  const col = new RemoteCollection<Item>().withListAt('parentId', 'id', items).refreshAt('parentId');
   t.deepEqual(
     col.idMap.value,
     { parentId: RD.refresh<string[], string[]>(['a', 'b']) },
@@ -187,13 +187,13 @@ test('#refreshAt, with items loaded', t => {
 });
 
 test('#refreshAt, with no items loaded', t => {
-  const col = new Collection<Item>().refreshAt('parentId');
+  const col = new RemoteCollection<Item>().refreshAt('parentId');
   t.deepEqual(col.idMap.value, { parentId: RD.pending }, 'sets ID list at the key to pending');
   t.deepEqual(col.entities, {}, 'sets entities to { [id: string]: RemoteSuccess(Item) }');
 });
 
 test('#viewAt, with items loaded', t => {
-  const col = new Collection<Item>().withListAt('parentId', 'id', items);
+  const col = new RemoteCollection<Item>().withListAt('parentId', 'id', items);
   t.deepEqual(
     col.viewAt('parentId'),
     RD.success([items[0], items[1]]),
@@ -202,12 +202,12 @@ test('#viewAt, with items loaded', t => {
 });
 
 test('#viewAt, with no items loaded', t => {
-  const col = new Collection<Item>();
+  const col = new RemoteCollection<Item>();
   t.deepEqual(col.viewAt('parentId'), RD.initial, 'Returns initial');
 });
 
 test('#viewAt, with a some successes and a failure', t => {
-  const col = new Collection<Item>()
+  const col = new RemoteCollection<Item>()
     .withListAt('parentId', 'id', items)
     .withResourceFailureAt('parentId', 'c', 'Something went wrong!');
   t.deepEqual(

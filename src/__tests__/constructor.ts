@@ -1,10 +1,10 @@
 import test from 'ava';
 import { initial, success } from '@cala/remote-data';
-import Collection from '../index';
+import RemoteCollection from '../index';
 import { Item, items } from './fixtures';
 
 test('with no initial data', t => {
-  const col = new Collection<Item>();
+  const col = new RemoteCollection<Item>();
   t.truthy(col);
   t.deepEqual(col.knownIds, initial);
   t.deepEqual(col.idMap.value, {});
@@ -12,8 +12,8 @@ test('with no initial data', t => {
 });
 
 test('with initial data', t => {
-  const existing = new Collection<Item>().withList('id', items);
-  const col = new Collection<Item>(existing);
+  const existing = new RemoteCollection<Item>().withList('id', items);
+  const col = new RemoteCollection<Item>(existing);
 
   t.not(existing, col);
   t.deepEqual(col.knownIds, success(['a', 'b']));
@@ -26,8 +26,8 @@ test('with initial data', t => {
 
 test('with initial data with parent mapping', t => {
   // TODO where to put the parent id?
-  const existing = new Collection<Item>().withListAt('parentId', 'id', items);
-  const col = new Collection<Item>(existing);
+  const existing = new RemoteCollection<Item>().withListAt('parentId', 'id', items);
+  const col = new RemoteCollection<Item>(existing);
 
   t.not(existing, col);
   t.deepEqual(col.knownIds, success(['a', 'b']));
