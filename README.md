@@ -1,7 +1,7 @@
 # Remote-Collection
 A TypeScript `RemoteData` Collection class
 
-## Rationale
+<hr />
 
 There have been a number of articles written about using Algebraic Data Types to
 describe the states that data fetching entails. Replacing all of the
@@ -10,15 +10,11 @@ pattern is nice, but there is still a lot of room to improve on the ergonomics
 of dealing with remote data. `remote-collection` aims to provide a user-friendly
 experience to the user while keeping 100% type-safety.
 
-### Resources
-
 A typical REST API lets you interface with remote `Resource`s through well-known
 HTTP patterns. A `User` resource, for instance, might be accessible by making a
 `GET https://api.myawesomeapp.com/user/some-id`. You can update parts of that
 resource by making a `PUT` or `PATCH` request to that same URL, or creating a
 new resource at that URL by making a `POST` request.
-
-### Collections
 
 A `Collection` is typically some ordered list of a `Resource`. You might have a
 `Users` collection, for instance. You can imagine that your API would support
@@ -26,8 +22,6 @@ making a request to `POST https://api.myawesomeapp.com/user` with a well-formed
 `User` resource, and it would add that `User` resource to the `Users`
 collection. `DELETE https://api.myawesomeapp.com/user/some-id` would remove that
 `User`, etc.
-
-### `RemoteData` Ergonomics
 
 One challenge with dealing with remote resources is identity of a resource
 within a collection. Typically, a resource would have an `id` field, or some
@@ -39,33 +33,31 @@ to account for, etc.
 
 `remote-collection` is here to help with that!
 
-## Usage
-
-### RemoteCollection
+## RemoteCollection
 
 Creates a new `RemoteCollection` of a generic `Resource` type. If you pass in
 another `RemoteRemoteCollection<Resource>` to the constructor, it will merge the
 resources.
 
-#### Signature
+### Signature
 ```ts
 export default class Collection<Resource extends { [key: string]: any }> {
   constructor(fromCollection?: RemoteCollection<Resource>) {
 ```
 
-### fetch
+## fetch
 
 Sets the resource at the given ID to `RemotePending`, or if it is already a
 `RemoteSuccess` or `RemoteRefresh`, sets it to `RemoteRefresh`. Useful when
 making the initial call to the server to indicate that we're currently fetching
 this resource
 
-#### Signature
+### Signature
 ```ts
 fetch(id: string): RemoteCollection<Resource>
 ```
 
-#### Examples
+### Examples
 ```ts
 const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
 const collection = new RemoteCollection<User>()
@@ -84,16 +76,16 @@ assert.deepStrictEqual(
 );
 ```
 
-### refresh
+## refresh
 
 Like `fetch` but for the whole list.
 
-#### Signature
+### Signature
 ```ts
 refresh(): RemoteCollection<Resource>
 ```
 
-#### Examples
+### Examples
 ```ts
 const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
 const collection = new RemoteCollection<User>();
@@ -109,27 +101,27 @@ assert.deepStrictEqual(
 );
 ```
 
-### refreshAt
+## refreshAt
 
 Like `refresh` but for refreshing the collection at a given key. See
 `withListAt` for more details about `At`.
 
-#### Signature
+### Signature
 ```ts
 refreshAt(at: string): RemoteCollection<Resource>
 ```
 
-### withList
+## withList
 
 This method adds a list of resources to the `RemoteCollection` representing the
 normal success-case for fetching the collection.
 
-#### Signature
+### Signature
 ```ts
 withList(idProp: keyof Resource, list: Resource[]): RemoteCollection<Resource>
 ```
 
-### withListAt
+## withListAt
 
 Like `withList` but adds the resources to the underlying resource map, but
 stores the list of IDs at a specific key so you can retrieve this set of
@@ -138,23 +130,23 @@ filtered views, etc. Resources themselves are normalized by the `idProp`, so if
 two `At` views share some resources in common, they both point to the same
 underlying resource.
 
-#### Signature
+### Signature
 ```ts
 withListAt(at: string, idProp: keyof Resource, list: Resource[]): RemoteCollection<Resource>
 ```
 
-### withResource
+## withResource
 
 This method adds a single resource to the `RemoteCollection` representing the
 normal success-case for fetching the collection. It appends the item to the end
 of the list of known IDs that is retrieved when you call `view`.
 
-#### Signature
+### Signature
 ```ts
 withResource(id: string, resource: Resource): RemoteCollection<Resource>
 ```
 
-### withResourceAt
+## withResourceAt
 
 Like `withResource` but adds the resource to the underlying resource map, but
 stores the new ID at a specific key so you can retrieve this set of resources by
@@ -162,65 +154,65 @@ that key. Useful for sub-resources (Post by User), pagination, filtered views,
 etc. Resources themselves are normalized by the `idProp`, so if two `At` views
 share some resources in common, they both point to the same underlying resource.
 
-#### Signature
+### Signature
 ```ts
 withResourceAt(at: string, id: string, resource: Resource): RemoteCollection<Resource>
 ```
 
-### withListFailure
+## withListFailure
 
 If requesting the list fails, calling this method will store a `RemoteFailure`
 with the passed `string`.
 
-#### Signature
+### Signature
 ```ts
 withResourceAt(at: string, id: string, resource: Resource): RemoteCollection<Resource>
 ```
 
-### withListFailureAt
+## withListFailureAt
 
 Like `withListFailure` but adds the failure only to the stored list of resources
 at the specified key, but doesn't interfer with other keys or the resource map
 itself.
 
-#### Signature
+### Signature
 ```ts
 withResourceAt(at: string, id: string, resource: Resource): RemoteCollection<Resource>
 ```
 
-### withResourceFailure
+## withResourceFailure
 
 If requesting a single resource fails, calling this method will store a
 `RemoteFailure` with the passed `string` in the resource map for just this
 resource.
 
-#### Signature
+### Signature
 ```ts
 withResourceFailure(id: string, error: string): RemoteCollection<Resource>
 ```
 
-### withResourceFailureAt
+## withResourceFailureAt
 
 The `At` version differs only in that requesting the view at the specified key
 will now see the newly errored resource.
 
-#### Signature
+### Signature
 ```ts
 withResourceFailureAt(at: string, id: string, error: string): RemoteCollection<Resource>
 ```
 
-### find
+## find
 
 Lookup a resource by its `idProp`. **NOTE**: If the resource has never been
 requested, or has been removed, we return `RemoteInitial` indicating that is has
 not been retrieved.
 
-#### Signature
+### Signature
 ```ts
 find(id: string): Remote<Resource>
 ```
 
-#### Example
+### Example
 ```ts
 const collection = new RemoteCollection<User>();
 
@@ -240,18 +232,18 @@ assert.deepStrictEqual(
 );
 ```
 
-### view
+## view
 
 Without any arguments will return the list known resources. If `view` is given a
 list of `id` strings, it will attempt to lookup the resources by those IDs and
 return them in the same order. Missing IDs will be omitted entirely.
 
-#### Signature
+### Signature
 ```ts
 public view(ids?: string[]): RemoteData<string[], Resource[]>
 ```
 
-#### Examples
+### Examples
 
 Here is a break down of what to expect:
 
@@ -311,26 +303,26 @@ Here is a break down of what to expect:
   );
   ```
 
-### viewAt
+## viewAt
 
 Like `view` but gets the list that was stored at the given key via `withListAt`,
 `withResourceAt`, `withFailureAt`.
 
-#### Signature
+### Signature
 ```ts
 public viewAt(at: string): RemoteData<string[], Resource[]>
 ```
 
-### remove
+## remove
 
 Removes the resource indicated by the `id`.
 
-#### Signature
+### Signature
 ```ts
 remove(id: string): RemoteCollection<Resource>
 ```
 
-#### Examples
+### Examples
 
 ```ts
 const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
@@ -348,22 +340,22 @@ assert.deepStrictEqual(
 );
 ```
 
-### removeAt
+## removeAt
 
 Like `remove` but _only_ removes the resource from the list at the indicated
 key. If the resource is also available at other keys, it will still be there.
 
-#### Signature
+### Signature
 ```ts
 removeAt(at: string, id: string): RemoteCollection<Resource>
 ```
 
-### concatResources
+## concatResources
 
 If you need to append to the list, instead of replacing them, use this method.
 It is very similar to `withList`.
 
-#### Signature
+### Signature
 ```ts
 concatResources(idProp: keyof Resource, resources: Resource[]): RemoteCollection<Resource>
 ```
