@@ -58,18 +58,30 @@ test('#withListAt, twice', t => {
 });
 
 test('#withListFailureAt', t => {
-  const col = new RemoteCollection<Item>().withListFailureAt('parentId', 'Something went wrong!');
+  const col = new RemoteCollection<Item>()
+    .withListAt('otherParentId', 'id', items)
+    .withListFailureAt('parentId', 'Something went wrong!');
   t.deepEqual(
     col.knownIds,
-    RD.failure<string[], string[]>(['Something went wrong!']),
-    'Saves the failure message to the list'
+    RD.success<string[], string[]>(['a', 'b']),
+    'Does not remove successful known IDs'
   );
   t.deepEqual(
     col.idMap.value,
-    { parentId: RD.failure<string[], string[]>(['Something went wrong!']) },
+    {
+      parentId: RD.failure<string[], string[]>(['Something went wrong!']),
+      otherParentId: RD.success<string[], string[]>(['a', 'b'])
+    },
     'Saves the failure message at the given key'
   );
-  t.deepEqual(col.entities, {}, 'Does not insert any new entities');
+  t.deepEqual(
+    col.entities,
+    {
+      a: RD.success<string[], Item>(items[0]),
+      b: RD.success<string[], Item>(items[1])
+    },
+    'Does not remove existing entities'
+  );
 });
 
 test('#withResourceAt, with no existing items', t => {

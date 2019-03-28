@@ -110,8 +110,10 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
   }
 
   public withListFailureAt(at: string, error: string): RemoteCollection<Resource> {
-    const col = this.withListFailure(error);
+    const col = new RemoteCollection(this);
+
     col.idMap = insert(at, RD.failure([error]), col.idMap);
+
     return col;
   }
 
