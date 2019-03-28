@@ -30,20 +30,26 @@ test('#withListAt', t => {
 test('#withListAt, twice', t => {
   const col = new Collection<Item>()
     .withListAt('parentId', 'id', items)
+    .withListAt('otherParentId', 'id', items)
     .withListAt('parentId', 'id', moreItems);
   t.deepEqual(
     col.knownIds,
-    RD.success<string[], string[]>(['c', 'd']),
+    RD.success<string[], string[]>(['a', 'b', 'c', 'd']),
     'Replaces the known IDs property to new IDs'
   );
   t.deepEqual(
     col.idMap.value,
-    { parentId: RD.success<string[], string[]>(['c', 'd']) },
+    {
+      parentId: RD.success<string[], string[]>(['c', 'd']),
+      otherParentId: RD.success<string[], string[]>(['a', 'b'])
+    },
     'Replaces the values at the given key in ID Map to new IDs'
   );
   t.deepEqual(
     col.entities,
     {
+      a: RD.success<string[], Item>(items[0]),
+      b: RD.success<string[], Item>(items[1]),
       c: RD.success<string[], Item>(moreItems[0]),
       d: RD.success<string[], Item>(moreItems[1])
     },
@@ -52,18 +58,30 @@ test('#withListAt, twice', t => {
 });
 
 test('#withListFailureAt', t => {
-  const col = new Collection<Item>().withListFailureAt('parentId', 'Something went wrong!');
+  const col = new Collection<Item>()
+    .withListAt('otherParentId', 'id', items)
+    .withListFailureAt('parentId', 'Something went wrong!');
   t.deepEqual(
     col.knownIds,
-    RD.failure<string[], string[]>(['Something went wrong!']),
-    'Saves the failure message to the list'
+    RD.success<string[], string[]>(['a', 'b']),
+    'Does not remove successful known IDs'
   );
   t.deepEqual(
     col.idMap.value,
-    { parentId: RD.failure<string[], string[]>(['Something went wrong!']) },
+    {
+      parentId: RD.failure<string[], string[]>(['Something went wrong!']),
+      otherParentId: RD.success<string[], string[]>(['a', 'b'])
+    },
     'Saves the failure message at the given key'
   );
-  t.deepEqual(col.entities, {}, 'Does not insert any new entities');
+  t.deepEqual(
+    col.entities,
+    {
+      a: RD.success<string[], Item>(items[0]),
+      b: RD.success<string[], Item>(items[1])
+    },
+    'Does not remove existing entities'
+  );
 });
 
 test('#withResourceAt, with no existing items', t => {
@@ -215,4 +233,9 @@ test('#viewAt, with a some successes and a failure', t => {
     RD.failure(['Something went wrong!']),
     'Returns the successful items'
   );
+});
+
+test('#viewAt, with some successes and a removed item', t => {
+  const col = new Collection<Item>().withListAt('parentId', 'id', items).remove('b');
+  t.deepEqual(col.viewAt('parentId'), RD.success([items[0]]), 'Returns the successful items');
 });
