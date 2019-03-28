@@ -237,7 +237,7 @@ test('#viewAt, with a some successes and a failure', t => {
   );
 });
 
-test('#viewAt, with a some successes and a removed item', t => {
+test('#viewAt, with some successes and a removed item', t => {
   const col = new RemoteCollection<Item>().withListAt('parentId', 'id', items).remove('b');
   t.deepEqual(col.viewAt('parentId'), RD.success([items[0]]), 'Returns the successful items');
 });
