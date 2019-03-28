@@ -86,10 +86,13 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
     idProp: keyof Resource,
     list: Resource[]
   ): RemoteCollection<Resource> {
-    const col = this.withList(idProp, list);
-    const ids = RD.success<string[], string[]>(list.map(resource => resource[idProp]));
-    col.idMap = insert(at, ids, col.idMap);
-    return col;
+    const col = new RemoteCollection(this);
+
+    const resourceIds: string[] = list.map((resource: Resource): string => resource[idProp]);
+    const newIds = RD.success<string[], string[]>(resourceIds);
+
+    col.idMap = insert(at, newIds, col.idMap);
+    return col.concatResources(idProp, list);
   }
 
   public withList(idProp: keyof Resource, list: Resource[]): RemoteCollection<Resource> {

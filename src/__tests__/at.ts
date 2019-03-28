@@ -30,20 +30,26 @@ test('#withListAt', t => {
 test('#withListAt, twice', t => {
   const col = new RemoteCollection<Item>()
     .withListAt('parentId', 'id', items)
+    .withListAt('otherParentId', 'id', items)
     .withListAt('parentId', 'id', moreItems);
   t.deepEqual(
     col.knownIds,
-    RD.success<string[], string[]>(['c', 'd']),
+    RD.success<string[], string[]>(['a', 'b', 'c', 'd']),
     'Replaces the known IDs property to new IDs'
   );
   t.deepEqual(
     col.idMap.value,
-    { parentId: RD.success<string[], string[]>(['c', 'd']) },
+    {
+      parentId: RD.success<string[], string[]>(['c', 'd']),
+      otherParentId: RD.success<string[], string[]>(['a', 'b'])
+    },
     'Replaces the values at the given key in ID Map to new IDs'
   );
   t.deepEqual(
     col.entities,
     {
+      a: RD.success<string[], Item>(items[0]),
+      b: RD.success<string[], Item>(items[1]),
       c: RD.success<string[], Item>(moreItems[0]),
       d: RD.success<string[], Item>(moreItems[1])
     },
@@ -170,7 +176,9 @@ test('#removeAt, with items loaded', t => {
 });
 
 test('#refreshAt, with items loaded', t => {
-  const col = new RemoteCollection<Item>().withListAt('parentId', 'id', items).refreshAt('parentId');
+  const col = new RemoteCollection<Item>()
+    .withListAt('parentId', 'id', items)
+    .refreshAt('parentId');
   t.deepEqual(
     col.idMap.value,
     { parentId: RD.refresh<string[], string[]>(['a', 'b']) },
@@ -215,4 +223,9 @@ test('#viewAt, with a some successes and a failure', t => {
     RD.failure(['Something went wrong!']),
     'Returns the successful items'
   );
+});
+
+test('#viewAt, with a some successes and a removed item', t => {
+  const col = new RemoteCollection<Item>().withListAt('parentId', 'id', items).remove('b');
+  t.deepEqual(col.viewAt('parentId'), RD.success([items[0]]), 'Returns the successful items');
 });
