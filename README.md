@@ -120,7 +120,7 @@ specified
 ```ts
 withResource(
   resource: Resource,
-  at?: string = RemoteCollection.DEFAULT_KEY
+  viewKey?: string = RemoteCollection.DEFAULT_KEY
 ): RemoteCollection<Resource>
 ```
 
@@ -221,7 +221,7 @@ the view key to refresh.
 
 ### Signature
 ```ts
-refresh(at?: string = RemoteCollection.DEFAULT_KEY): RemoteCollection<Resource>
+refresh(viewKey?: string = RemoteCollection.DEFAULT_KEY): RemoteCollection<Resource>
 ```
 
 ### Examples
@@ -257,7 +257,7 @@ second argument, or `RemoteCollection.DEFAULT_KEY` if not provided.
 ```ts
 withList(
   list: Resource[],
-  at?: string = RemoteCollection.DEFAULT_KEY
+  viewKey?: string = RemoteCollection.DEFAULT_KEY
 ): RemoteCollection<Resource>
 ```
 
@@ -292,7 +292,7 @@ with the passed `string` at the view key specified by the second argument, or
 ```ts
 withListFailure(
   error: string,
-  at?: string = RemoteCollection.DEFAULT_KEY
+  viewKey?: string = RemoteCollection.DEFAULT_KEY
 ): Collection<Resource>
 ```
 
@@ -303,7 +303,7 @@ Return the list of resources at a view key, or default to
 
 ### Signature
 ```ts
-public view(at?: string = RemoteCollection.DEFAULT_KEY): RemoteData<string[], Resource[]>
+public view(viewKey?: string = RemoteCollection.DEFAULT_KEY): RemoteData<string[], Resource[]>
 ```
 
 ### Examples
@@ -393,7 +393,7 @@ argument.
 ```ts
 concat(
   resources: Resource[],
-  at?: string = RemoteCollection.DEFAULT_KEY
+  viewKey?: string = RemoteCollection.DEFAULT_KEY
 ): RemoteCollection<Resource>
 ```
 
@@ -405,7 +405,7 @@ Apply a function to every resource at a view key.
 ```ts
 map(
   fn: (resource: Resource, index: string) => Resource,
-  at?: string = RemoteCollection.DEFAULT_KEY
+  viewKey?: string = RemoteCollection.DEFAULT_KEY
 ): RemoteCollection<Resource>
 ```
 
@@ -428,11 +428,12 @@ assert.deepStrictEqual(
 
 ## reset
 
-Removes the view at the given key, or at the `RemoteCollection.DEFAULT_KEY`.
+Removes the view at the given view key, or at the
+`RemoteCollection.DEFAULT_KEY`.
 
 ### Signature
 ```ts
-reset(at?: string = RemoteCollection.DEFAULT_KEY): RemoteCollection<Resource>
+reset(viewKey?: string = RemoteCollection.DEFAULT_KEY): RemoteCollection<Resource>
 ```
 
 ### Example
