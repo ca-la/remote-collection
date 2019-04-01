@@ -33,16 +33,14 @@ to account for, etc.
 
 `remote-collection` is here to help with that!
 
-## Normalization
+## Views vs. Resources
 
 The same set of resources might have different ordering, be a filtered set, or
 some other smaller subset of the overall set. We call these subsets "views". One
-of the requirements of a resource is that it is _identifiable_ by some property.
+of the requirements of a resource is that it is identifiable by some property.
 Typically an `id`, `uri`, `href`, or similar property. The set of those
 identified resources are normalized such that updates to that resource should be
 visible to other views that might include it.
-
-## Remote
 
 The state of fetching the whole collection, and the state of each individual
 resource are possiblity divergent, so `RemoteCollection` stores those states
@@ -59,15 +57,18 @@ resources.
 
 ### Signature
 ```ts
-RemoteCollection<Resource extends { [key: string]: any }>(fromCollection?: RemoteCollection<Resource>)
+RemoteCollection<Resource extends { [key: string]: any }>(
+  idProp?: string = 'id',
+  fromCollection?: RemoteCollection<Resource>
+)
 ```
 
 ### Examples
 ```ts
 // Initialize a new empty RemoteCollection where the wrapped resource is a `User`
-const collection = new RemoteCollection<User>();
+const collection = new RemoteCollection<User>('id');
 // Initialize a new RemoteCollection merging in an existing collection
-const merged = new RemoteCollection<User>(collection);
+const merged = new RemoteCollection<User>('id', collection);
 ```
 
 # Resource Methods
@@ -87,8 +88,8 @@ fetch(id: string): RemoteCollection<Resource>
 ### Examples
 ```ts
 const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
-const collection = new RemoteCollection<User>()
-  .withList('id', users)
+const collection = new RemoteCollection<User>('id')
+  .withList(users)
   .fetch('a')
   .fetch('c');
   
@@ -118,7 +119,6 @@ specified
 ### Signature
 ```ts
 withResource(
-  id: string,
   resource: Resource,
   at?: string = RemoteCollection.DEFAULT_KEY
 ): RemoteCollection<Resource>
@@ -126,20 +126,20 @@ withResource(
 
 ### Example
 ```ts
-const collection = new RemoteCollection<User>();
+const collection = new RemoteCollection<User>('id');
 
 assert.deepStrictEqual(
-  collection.withResource(users[0].id, users.id).find(users[0].id),
+  collection.withResource(users.id).find(users[0].id),
   RemoteData.success(users[0])
 );
 
 assert.deepStrictEqual(
-  collection.withResource(users[0].id, users.id).view(),
+  collection.withResource(users.id).view(),
   RemoteData.success([users[0]])
 );
 
 assert.deepStrictEqual(
-  collection.withResource(users[0].id, users.id, 'team1').view('team1'),
+  collection.withResource(users.id, 'team1').view('team1'),
   RemoteData.success([users[0]])
 );
 ```
@@ -168,7 +168,7 @@ find(id: string): RemoteData<string[], Resource>
 
 ### Example
 ```ts
-const collection = new RemoteCollection<User>();
+const collection = new RemoteCollection<User>('id');
 
 assert.deepStrictEqual(
   collection.find('a'),
@@ -176,7 +176,7 @@ assert.deepStrictEqual(
 );
 
 assert.deepStrictEqual(
-  collection.withResource('id', { id: 'a', name: 'Alice' }).find('a'),
+  collection.withResource({ id: 'a', name: 'Alice' }).find('a'),
   RemoteData.success({ id: 'a', name: 'Alice' })
 );
 
@@ -199,8 +199,7 @@ remove(id: string): RemoteCollection<Resource>
 
 ```ts
 const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
-const collection = new RemoteCollection<User>()
-  .withList('id', users);
+const collection = new RemoteCollection<User>('id').withList(users);
   
 assert.deepStrictEqual(
   collection.view(),
@@ -228,7 +227,7 @@ refresh(at?: string = RemoteCollection.DEFAULT_KEY): RemoteCollection<Resource>
 ### Examples
 ```ts
 const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
-const collection = new RemoteCollection<User>();
+const collection = new RemoteCollection<User>('id');
 
 assert.deepStrictEqual(
   collection.refresh().view(),
@@ -236,12 +235,12 @@ assert.deepStrictEqual(
 );
   
 assert.deepStrictEqual(
-  collection.withList('id', users).refresh().view(),
+  collection.withList(users).refresh().view(),
   RemoteData.refresh(users)
 );
   
 assert.deepStrictEqual(
-  collection.withList('id', users, 'team1').refresh('team1').view(),
+  collection.withList(users, 'team1').refresh('team1').view(),
   RemoteData.refresh(users)
 );
 ```
@@ -251,14 +250,11 @@ assert.deepStrictEqual(
 Set or replace the list of resources.
 
 This method adds a list of resources to the `RemoteCollection` representing the
-normal success-case for fetching the collection. The third optional argument
-specifies the key at which this view of the resources is stored at. If not
-provided, the list will be stored at the `RemoteCollection.DEFAULT_KEY` key.
+normal success-case for fetching the collection.
 
 ### Signature
 ```ts
 withList(
-  idProp: keyof Resource,
   list: Resource[],
   at?: string = RemoteCollection.DEFAULT_KEY
 ): RemoteCollection<Resource>
@@ -267,20 +263,20 @@ withList(
 
 ### Example
 ```ts
-const collection = new RemoteCollection<User>();
+const collection = new RemoteCollection<User>('id');
 
 assert.deepStrictEqual(
-  collection.withList('id', users).view(),
+  collection.withList(users).view(),
   RemoteData.success(users)
 );
 
 assert.deepStrictEqual(
-  collection.withList('id', users).view(),
-  collection.withList('id', users).view(RemoteCollection.DEFAULT_KEY)
+  collection.withList(users).view(),
+  collection.withList(users).view(RemoteCollection.DEFAULT_KEY)
 );
 
 assert.deepStrictEqual(
-  collection.withList('id', users, 'team1').view('team1'),
+  collection.withList(users, 'team1').view('team1'),
   RemoteData.success(users)
 );
 ```
@@ -306,7 +302,7 @@ Return the list of resources at a view key, or default to
 
 ### Signature
 ```ts
-public view(ids?: string[]): RemoteData<string[], Resource[]>
+public view(at?: string = RemoteCollection.DEFAULT_KEY): RemoteData<string[], Resource[]>
 ```
 
 ### Examples
@@ -320,7 +316,7 @@ Here is a break down of what to expect:
   
   ```ts
   const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
-  const collection = new RemoteCollection<User>().withList('id', users);
+  const collection = new RemoteCollection<User>('id').withList(users);
   assert.deepStrictEqual(collection.view(), RemoteData.success(users));
   ```
 - If there was a failure when retrieving the list, you will receive the
@@ -340,8 +336,8 @@ Here is a break down of what to expect:
     { id: 'b', name: 'Bob' },
     { id: 'c', name: 'Charlie' }
   ];
-  const collection = new RemoteCollection<User>()
-    .withList('id', users)
+  const collection = new RemoteCollection<User>('id')
+    .withList(users)
     .withResourceFailure('a', 'Bad request')
     .withResourceFailure('c', 'Conflict');
 
@@ -359,8 +355,8 @@ Here is a break down of what to expect:
     { id: 'b', name: 'Bob' },
     { id: 'c', name: 'Charlie' }
   ];
-  const collection = new RemoteCollection<User>()
-    .withList('id', users)
+  const collection = new RemoteCollection<User>('id')
+    .withList(users)
     .fetch('d');
 
   assert.deepStrictEqual(
@@ -372,8 +368,8 @@ Here is a break down of what to expect:
 Using a view key:
 
 ```ts
-const collection = new RemoteCollection<User>()
-  .withList('id', users, 'team1');
+const collection = new RemoteCollection<User>('id')
+  .withList(users, 'team1');
   
 assert.deepStrictEqual(
   collection.view(),
@@ -394,8 +390,7 @@ argument.
 
 ### Signature
 ```ts
-concatResources(
-  idProp: keyof Resource,
+concat(
   resources: Resource[],
   at?: string = RemoteCollection.DEFAULT_KEY
 ): RemoteCollection<Resource>
@@ -419,7 +414,7 @@ map(
     { id: 'a', name: 'Alice' },
     { id: 'b', name: 'Bob' }
   ];
-const collection = new RemoteCollection<User>().withList('id', users, 'team1');
+const collection = new RemoteCollection<User>('id').withList(users, 'team1');
 
 assert.deepStrictEqual(
   collection.map(u => ({ ...u, name: u.name.toUpperCase() }), 'team1'),
@@ -441,7 +436,7 @@ reset(at?: string = RemoteCollection.DEFAULT_KEY): RemoteCollection<Resource>
 
 ### Example
 ```ts
-const collection = new RemoteCollection<User>().withList('id', users, 'team1');
+const collection = new RemoteCollection<User>('id').withList(users, 'team1');
 
 assert.deepStrictEqual(
   collection.view('team1'),
