@@ -250,7 +250,8 @@ assert.deepStrictEqual(
 Set or replace the list of resources.
 
 This method adds a list of resources to the `RemoteCollection` representing the
-normal success-case for fetching the collection.
+normal success-case for fetching the collection at the view key specified by the
+second argument, or `RemoteCollection.DEFAULT_KEY` if not provided.
 
 ### Signature
 ```ts
@@ -284,7 +285,7 @@ assert.deepStrictEqual(
 ## withListFailure
 
 If requesting the list fails, calling this method will store a `RemoteFailure`
-with the passed `string` at the key specified by the second argument, or
+with the passed `string` at the view key specified by the second argument, or
 `RemoteCollection.DEFAULT_KEY` if not provided.
 
 ### Signature
