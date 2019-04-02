@@ -47,6 +47,20 @@ resource are possiblity divergent, so `RemoteCollection` stores those states
 separately. You may have a failure state in one of your resources, but are
 refetching the whole list, and `RemoteCollection` tracks both states.
 
+## Transitioning the RemoteData state
+
+A helpful cheatsheet for how to transition to the different
+[`RemoteData`](https://github.com/ca-la/remote-data) states for collections vs
+individual resources:
+
+| Remote State | Collection | Resource |
+|---|---|---|
+|`RemoteInitial`|`reset`|`remove`|
+|`RemotePending`|`refresh`|`fetch`|
+|`RemoteFailure`|`withListFailure`|`withResourceFailure`|
+|`RemoteRefresh`|`refresh`|`fetch`|
+|`RemoteSuccess`|`withList`|`withResource`|
+
 # Usage
 
 ## RemoteCollection (Constructor)
