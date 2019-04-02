@@ -55,11 +55,11 @@ individual resources:
 
 | Remote State | Collection | Resource |
 |---|---|---|
-|`RemoteInitial`|`reset`|`remove`|
-|`RemotePending`|`refresh`|`fetch`|
-|`RemoteFailure`|`withListFailure`|`withResourceFailure`|
-|`RemoteRefresh`|`refresh`|`fetch`|
-|`RemoteSuccess`|`withList`|`withResource`|
+|`RemoteInitial`|[`reset`](#reset) |[`remove`](#remove)|
+|`RemotePending`|[`refresh`](#refresh) |[`fetch`](#fetch)|
+|`RemoteFailure`|[`withListFailure`](#withlistfailure)|[`withResourceFailure`](#withresourcefailure) |
+|`RemoteRefresh`|[`refresh`](#refresh)|[`fetch`](#fetch)|
+|`RemoteSuccess`|[`withList`](#withlist)|[`withResource`](#withresource)|
 
 # Usage
 
