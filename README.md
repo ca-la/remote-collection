@@ -33,7 +33,37 @@ to account for, etc.
 
 `remote-collection` is here to help with that!
 
-## RemoteCollection
+## Views vs. Resources
+
+The same set of resources might have different ordering, be a filtered set, or
+some other smaller subset of the overall set. We call these subsets "views". One
+of the requirements of a resource is that it is identifiable by some property.
+Typically an `id`, `uri`, `href`, or similar property. The set of those
+identified resources are normalized such that updates to that resource should be
+visible to other views that might include it.
+
+The state of fetching the whole collection, and the state of each individual
+resource are possiblity divergent, so `RemoteCollection` stores those states
+separately. You may have a failure state in one of your resources, but are
+refetching the whole list, and `RemoteCollection` tracks both states.
+
+## Transitioning the RemoteData state
+
+A helpful cheatsheet for how to transition to the different
+[`RemoteData`](https://github.com/ca-la/remote-data) states for collections vs
+individual resources:
+
+| Remote State | Collection | Resource |
+|---|---|---|
+|`RemoteInitial`|[`reset`](#reset) |[`remove`](#remove)|
+|`RemotePending`|[`refresh`](#refresh) |[`fetch`](#fetch)|
+|`RemoteFailure`|[`withListFailure`](#withlistfailure)|[`withResourceFailure`](#withresourcefailure) |
+|`RemoteRefresh`|[`refresh`](#refresh)|[`fetch`](#fetch)|
+|`RemoteSuccess`|[`withList`](#withlist)|[`withResource`](#withresource)|
+
+# Usage
+
+## RemoteCollection (Constructor)
 
 Creates a new `RemoteCollection` of a generic `Resource` type. If you pass in
 another `RemoteCollection<Resource>` to the constructor, it will merge the
@@ -41,23 +71,28 @@ resources.
 
 ### Signature
 ```ts
-RemoteCollection<Resource extends { [key: string]: any }>(fromCollection?: RemoteCollection<Resource>)
+RemoteCollection<Resource extends { [key: string]: any }>(
+  idProp?: string = 'id',
+  fromCollection?: RemoteCollection<Resource>
+)
 ```
 
 ### Examples
 ```ts
 // Initialize a new empty RemoteCollection where the wrapped resource is a `User`
-const collection = new RemoteCollection<User>();
+const collection = new RemoteCollection<User>('id');
 // Initialize a new RemoteCollection merging in an existing collection
-const merged = new RemoteCollection<User>(collection);
+const merged = new RemoteCollection<User>('id', collection);
 ```
+
+# Resource Methods
 
 ## fetch
 
 Sets the resource at the given ID to `RemotePending`, or if it is already a
 `RemoteSuccess` or `RemoteRefresh`, sets it to `RemoteRefresh`. Useful when
 making the initial call to the server to indicate that we're currently fetching
-this resource
+this resource, or when updating or re-fetching a resource.
 
 ### Signature
 ```ts
@@ -67,8 +102,8 @@ fetch(id: string): RemoteCollection<Resource>
 ### Examples
 ```ts
 const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
-const collection = new RemoteCollection<User>()
-  .withList('id', users)
+const collection = new RemoteCollection<User>('id')
+  .withList(users)
   .fetch('a')
   .fetch('c');
   
@@ -83,108 +118,44 @@ assert.deepStrictEqual(
 );
 ```
 
-## refresh
-
-Like `fetch` but for the whole list.
-
-### Signature
-```ts
-refresh(): RemoteCollection<Resource>
-```
-
-### Examples
-```ts
-const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
-const collection = new RemoteCollection<User>();
-
-assert.deepStrictEqual(
-  collection.refresh().view(),
-  RemoteData.pending
-);
-  
-assert.deepStrictEqual(
-  collection.withList('id', users).refresh().view(),
-  RemoteData.refresh(users)
-);
-```
-
-## refreshAt
-
-Like `refresh` but for refreshing the collection at a given key. See
-`withListAt` for more details about `At`.
-
-### Signature
-```ts
-refreshAt(at: string): RemoteCollection<Resource>
-```
-
-## withList
-
-This method adds a list of resources to the `RemoteCollection` representing the
-normal success-case for fetching the collection.
-
-### Signature
-```ts
-withList(idProp: keyof Resource, list: Resource[]): RemoteCollection<Resource>
-```
-
-## withListAt
-
-Like `withList` but adds the resources to the underlying resource map, but
-stores the list of IDs at a specific key so you can retrieve this set of
-resources by that key. Useful for sub-resources (Post by User), pagination,
-filtered views, etc. Resources themselves are normalized by the `idProp`, so if
-two `At` views share some resources in common, they both point to the same
-underlying resource.
-
-### Signature
-```ts
-withListAt(at: string, idProp: keyof Resource, list: Resource[]): RemoteCollection<Resource>
-```
-
 ## withResource
 
+Add or update a single Resource.
+
 This method adds a single resource to the `RemoteCollection` representing the
-normal success-case for fetching the collection. It appends the item to the end
-of the list of known IDs that is retrieved when you call `view`.
+normal success-case for fetching the collection. If the resource is not
+currently in the set of resources, it is appened to the _end_ of the list at the
+key specified in the third argument. If you do not specify a key, the new
+resource will be appended to the list at `RemoteCollection.DEFAULT_KEY`. If the
+item _does_ exist already, that resource is replaced with the new value
+specified
 
 ### Signature
 ```ts
-withResource(id: string, resource: Resource): RemoteCollection<Resource>
+withResource(
+  resource: Resource,
+  viewKey?: string = RemoteCollection.DEFAULT_KEY
+): RemoteCollection<Resource>
 ```
 
-## withResourceAt
-
-Like `withResource` but adds the resource to the underlying resource map, but
-stores the new ID at a specific key so you can retrieve this set of resources by
-that key. Useful for sub-resources (Post by User), pagination, filtered views,
-etc. Resources themselves are normalized by the `idProp`, so if two `At` views
-share some resources in common, they both point to the same underlying resource.
-
-### Signature
+### Example
 ```ts
-withResourceAt(at: string, id: string, resource: Resource): RemoteCollection<Resource>
-```
+const collection = new RemoteCollection<User>('id');
 
-## withListFailure
+assert.deepStrictEqual(
+  collection.withResource(users.id).find(users[0].id),
+  RemoteData.success(users[0])
+);
 
-If requesting the list fails, calling this method will store a `RemoteFailure`
-with the passed `string`.
+assert.deepStrictEqual(
+  collection.withResource(users.id).view(),
+  RemoteData.success([users[0]])
+);
 
-### Signature
-```ts
-withListFailure(error: string): Collection<Resource>
-```
-
-## withListFailureAt
-
-Like `withListFailure` but adds the failure only to the stored list of resources
-at the specified key, but doesn't interfere with other keys or the resource map
-itself.
-
-### Signature
-```ts
-withListFailureAt(at: string, error: string): Collection<Resource>
+assert.deepStrictEqual(
+  collection.withResource(users.id, 'team1').view('team1'),
+  RemoteData.success([users[0]])
+);
 ```
 
 ## withResourceFailure
@@ -196,16 +167,6 @@ resource.
 ### Signature
 ```ts
 withResourceFailure(id: string, error: string): RemoteCollection<Resource>
-```
-
-## withResourceFailureAt
-
-The `At` version differs only in that requesting the view at the specified key
-will now see the newly errored resource.
-
-### Signature
-```ts
-withResourceFailureAt(at: string, id: string, error: string): RemoteCollection<Resource>
 ```
 
 ## find
@@ -221,7 +182,7 @@ find(id: string): RemoteData<string[], Resource>
 
 ### Example
 ```ts
-const collection = new RemoteCollection<User>();
+const collection = new RemoteCollection<User>('id');
 
 assert.deepStrictEqual(
   collection.find('a'),
@@ -229,7 +190,7 @@ assert.deepStrictEqual(
 );
 
 assert.deepStrictEqual(
-  collection.withResource('id', { id: 'a', name: 'Alice' }).find('a'),
+  collection.withResource({ id: 'a', name: 'Alice' }).find('a'),
   RemoteData.success({ id: 'a', name: 'Alice' })
 );
 
@@ -239,15 +200,124 @@ assert.deepStrictEqual(
 );
 ```
 
-## view
+## remove
 
-Without any arguments will return the list known resources. If `view` is given a
-list of `id` strings, it will attempt to lookup the resources by those IDs and
-return them in the same order. Missing IDs will be omitted entirely.
+Removes the resource indicated by the `id`.
 
 ### Signature
 ```ts
-public view(ids?: string[]): RemoteData<string[], Resource[]>
+remove(id: string): RemoteCollection<Resource>
+```
+
+### Examples
+
+```ts
+const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
+const collection = new RemoteCollection<User>('id').withList(users);
+  
+assert.deepStrictEqual(
+  collection.view(),
+  RemoteData.success(users)
+);
+
+assert.deepStrictEqual(
+  collection.remove('a').view(),
+  RemoteData.success([users[1]])
+);
+```
+
+# Collection Methods
+
+## refresh
+
+Like `fetch` but for the whole list. The optional `at` arguments allows you to specify
+the view key to refresh.
+
+### Signature
+```ts
+refresh(viewKey?: string = RemoteCollection.DEFAULT_KEY): RemoteCollection<Resource>
+```
+
+### Examples
+```ts
+const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
+const collection = new RemoteCollection<User>('id');
+
+assert.deepStrictEqual(
+  collection.refresh().view(),
+  RemoteData.pending
+);
+  
+assert.deepStrictEqual(
+  collection.withList(users).refresh().view(),
+  RemoteData.refresh(users)
+);
+  
+assert.deepStrictEqual(
+  collection.withList(users, 'team1').refresh('team1').view(),
+  RemoteData.refresh(users)
+);
+```
+
+## withList
+
+Set or replace the list of resources.
+
+This method adds a list of resources to the `RemoteCollection` representing the
+normal success-case for fetching the collection at the view key specified by the
+second argument, or `RemoteCollection.DEFAULT_KEY` if not provided.
+
+### Signature
+```ts
+withList(
+  list: Resource[],
+  viewKey?: string = RemoteCollection.DEFAULT_KEY
+): RemoteCollection<Resource>
+```
+
+
+### Example
+```ts
+const collection = new RemoteCollection<User>('id');
+
+assert.deepStrictEqual(
+  collection.withList(users).view(),
+  RemoteData.success(users)
+);
+
+assert.deepStrictEqual(
+  collection.withList(users).view(),
+  collection.withList(users).view(RemoteCollection.DEFAULT_KEY)
+);
+
+assert.deepStrictEqual(
+  collection.withList(users, 'team1').view('team1'),
+  RemoteData.success(users)
+);
+```
+
+## withListFailure
+
+If requesting the list fails, calling this method will store a `RemoteFailure`
+with the passed `string` at the view key specified by the second argument, or
+`RemoteCollection.DEFAULT_KEY` if not provided.
+
+### Signature
+```ts
+withListFailure(
+  error: string,
+  viewKey?: string = RemoteCollection.DEFAULT_KEY
+): Collection<Resource>
+```
+
+## view
+
+Return the list of resources at a view key, or default to
+`RemoteCollection.DEFAULT_KEY` if none is provided.
+
+### Signature
+```ts
+public view(viewKey?: string = RemoteCollection.DEFAULT_KEY): RemoteData<string[], Resource[]>
 ```
 
 ### Examples
@@ -261,7 +331,7 @@ Here is a break down of what to expect:
   
   ```ts
   const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
-  const collection = new RemoteCollection<User>().withList('id', users);
+  const collection = new RemoteCollection<User>('id').withList(users);
   assert.deepStrictEqual(collection.view(), RemoteData.success(users));
   ```
 - If there was a failure when retrieving the list, you will receive the
@@ -281,8 +351,8 @@ Here is a break down of what to expect:
     { id: 'b', name: 'Bob' },
     { id: 'c', name: 'Charlie' }
   ];
-  const collection = new RemoteCollection<User>()
-    .withList('id', users)
+  const collection = new RemoteCollection<User>('id')
+    .withList(users)
     .withResourceFailure('a', 'Bad request')
     .withResourceFailure('c', 'Conflict');
 
@@ -300,8 +370,8 @@ Here is a break down of what to expect:
     { id: 'b', name: 'Bob' },
     { id: 'c', name: 'Charlie' }
   ];
-  const collection = new RemoteCollection<User>()
-    .withList('id', users)
+  const collection = new RemoteCollection<User>('id')
+    .withList(users)
     .fetch('d');
 
   assert.deepStrictEqual(
@@ -309,60 +379,88 @@ Here is a break down of what to expect:
     RemoteData.pending
   );
   ```
-
-## viewAt
-
-Like `view` but gets the list that was stored at the given key via `withListAt`,
-`withResourceAt`, `withFailureAt`.
-
-### Signature
-```ts
-public viewAt(at: string): RemoteData<string[], Resource[]>
-```
-
-## remove
-
-Removes the resource indicated by the `id`.
-
-### Signature
-```ts
-remove(id: string): RemoteCollection<Resource>
-```
-
-### Examples
+  
+Using a view key:
 
 ```ts
-const users: User[] = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
-const collection = new RemoteCollection<User>()
-  .withList('id', users);
+const collection = new RemoteCollection<User>('id')
+  .withList(users, 'team1');
   
 assert.deepStrictEqual(
   collection.view(),
+  RemoteData.initial
+);
+
+assert.deepStrictEqual(
+  collection.view('team1'),
+  RemoteData.success(users);
+);
+```
+
+## concat
+
+If you need to append to the list, instead of replacing them, use this method.
+It is very similar to `withList`, and takes an optional view key as the third
+argument.
+
+### Signature
+```ts
+concat(
+  resources: Resource[],
+  viewKey?: string = RemoteCollection.DEFAULT_KEY
+): RemoteCollection<Resource>
+```
+
+## map
+
+Apply a function to every resource at a view key.
+
+### Signature
+```ts
+map(
+  fn: (resource: Resource, index: string) => Resource,
+  viewKey?: string = RemoteCollection.DEFAULT_KEY
+): RemoteCollection<Resource>
+```
+
+### Example
+```ts
+  const users: User[] = [
+    { id: 'a', name: 'Alice' },
+    { id: 'b', name: 'Bob' }
+  ];
+const collection = new RemoteCollection<User>('id').withList(users, 'team1');
+
+assert.deepStrictEqual(
+  collection.map(u => ({ ...u, name: u.name.toUpperCase() }), 'team1'),
+  RemoteData.success([
+    { id: 'a', name: 'ALICE' },
+    { id: 'b', name: 'BOB' }
+  ])
+);
+```
+
+## reset
+
+Removes the view at the given view key, or at the
+`RemoteCollection.DEFAULT_KEY`.
+
+### Signature
+```ts
+reset(viewKey?: string = RemoteCollection.DEFAULT_KEY): RemoteCollection<Resource>
+```
+
+### Example
+```ts
+const collection = new RemoteCollection<User>('id').withList(users, 'team1');
+
+assert.deepStrictEqual(
+  collection.view('team1'),
   RemoteData.success(users)
 );
 
 assert.deepStrictEqual(
-  collection.remove('a').view(),
-  RemoteData.success([users[1]])
+  collection.reset('team1').view('team1'),
+  RemoteData.initial
 );
-```
-
-## removeAt
-
-Like `remove` but _only_ removes the resource from the list at the indicated
-key. If the resource is also available at other keys, it will still be there.
-
-### Signature
-```ts
-removeAt(at: string, id: string): RemoteCollection<Resource>
-```
-
-## concatResources
-
-If you need to append to the list, instead of replacing them, use this method.
-It is very similar to `withList`.
-
-### Signature
-```ts
-concatResources(idProp: keyof Resource, resources: Resource[]): RemoteCollection<Resource>
 ```
