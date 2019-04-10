@@ -65,14 +65,14 @@ individual resources:
 
 ## RemoteCollection (Constructor)
 
-Creates a new `RemoteCollection` of a generic `Resource` type. If you pass in
-another `RemoteCollection<Resource>` to the constructor, it will merge the
-resources.
+Creates a new `RemoteCollection` of a generic `Resource` type. It takes two
+arguments, the first being the key of the identifier on the resource. The second
+optional argument is another `RemoteCollection` to copy into this new instance.
 
 ### Signature
 ```ts
 RemoteCollection<Resource extends { [key: string]: any }>(
-  idProp?: string = 'id',
+  idProp: keyof Resource,
   fromCollection?: RemoteCollection<Resource>
 )
 ```
@@ -81,8 +81,8 @@ RemoteCollection<Resource extends { [key: string]: any }>(
 ```ts
 // Initialize a new empty RemoteCollection where the wrapped resource is a `User`
 const collection = new RemoteCollection<User>('id');
-// Initialize a new RemoteCollection merging in an existing collection
-const merged = new RemoteCollection<User>('id', collection);
+// Initialize a new RemoteCollection as a copy of an existing collection
+const copy = new RemoteCollection<User>('id', collection);
 ```
 
 # Resource Methods
