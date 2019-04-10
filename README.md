@@ -53,7 +53,7 @@ A helpful cheatsheet for how to transition to the different
 [`RemoteData`](https://github.com/ca-la/remote-data) states for collections vs
 individual resources:
 
-| Remote State | Collection | Resource |
+| Remote State | View | Resource |
 |---|---|---|
 |`RemoteInitial`|[`reset`](#reset) |[`remove`](#remove)|
 |`RemotePending`|[`refresh`](#refresh) |[`fetch`](#fetch)|
