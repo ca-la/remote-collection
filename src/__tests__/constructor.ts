@@ -1,39 +1,29 @@
 import test from 'ava';
-import { initial, success } from '@cala/remote-data';
+import * as RD from '@cala/remote-data';
 import RemoteCollection from '../index';
 import { Item, items } from './fixtures';
 
 test('with no initial data', t => {
-  const col = new RemoteCollection<Item>();
-  t.truthy(col);
-  t.deepEqual(col.knownIds, initial);
-  t.deepEqual(col.idMap.value, {});
-  t.deepEqual(col.entities, {});
+  const col = new RemoteCollection<Item>('id');
+  t.deepEqual(col.view(), RD.initial, 'sets up an empty collection');
 });
 
 test('with initial data', t => {
-  const existing = new RemoteCollection<Item>().withList('id', items);
-  const col = new RemoteCollection<Item>(existing);
+  const existing = new RemoteCollection<Item>('id').withList(items);
+  const col = new RemoteCollection<Item>('id', existing);
 
   t.not(existing, col);
-  t.deepEqual(col.knownIds, success(['a', 'b']));
-  t.deepEqual(col.idMap.value, {});
-  t.deepEqual(col.entities, {
-    a: success<string[], Item>({ id: 'a', foo: 'bar' }),
-    b: success<string[], Item>({ id: 'b', foo: 'baz' })
-  });
+  t.deepEqual(existing.view(), col.view(), 'has the same items');
 });
 
 test('with initial data with parent mapping', t => {
-  // TODO where to put the parent id?
-  const existing = new RemoteCollection<Item>().withListAt('parentId', 'id', items);
-  const col = new RemoteCollection<Item>(existing);
+  const existing = new RemoteCollection<Item>('id').withList(items, 'someViewKey');
+  const col = new RemoteCollection<Item>('id', existing);
 
   t.not(existing, col);
-  t.deepEqual(col.knownIds, success(['a', 'b']));
-  t.deepEqual(col.idMap.value, { parentId: success<string[], string[]>(['a', 'b']) });
-  t.deepEqual(col.entities, {
-    a: success<string[], Item>({ id: 'a', foo: 'bar' }),
-    b: success<string[], Item>({ id: 'b', foo: 'baz' })
-  });
+  t.deepEqual(
+    existing.view('someViewKey'),
+    col.view('someViewKey'),
+    'has the same items at the view key'
+  );
 });
