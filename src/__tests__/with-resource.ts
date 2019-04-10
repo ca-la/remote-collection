@@ -4,60 +4,40 @@ import RemoteCollection from '../index';
 import { Item, items } from './fixtures';
 
 test('with no items loaded, #withResource', t => {
-  const col = new RemoteCollection<Item>().withResource('a', items[0]);
-  t.deepEqual(col.knownIds, RD.success<string[], string[]>(['a']), 'sets knownIds to returned id');
-  t.deepEqual(
-    col.entities,
-    { a: RD.success<string[], Item>(items[0]) },
-    'sets entities to { [id: string]: RemoteSuccess(Item) }'
-  );
+  const col = new RemoteCollection<Item>('id').withResource(items[0]);
+
+  t.deepEqual(col.find('a'), RD.success<string[], Item>(items[0]), 'adds the resource');
+  t.deepEqual(col.view(), RD.initial, 'does not add to the view');
 });
 
 test('with items loaded, #withResource on an existing ID', t => {
-  const col = new RemoteCollection<Item>()
-    .withList('id', items)
-    .withResource('a', { id: 'a', foo: 'quux' });
+  const update: Item = { id: 'a', foo: 'quux' };
+  const col = new RemoteCollection<Item>().withList('id', items).withResource('a', update);
+
+  t.deepEqual(col.find('a'), RD.success<string[], Item>(update), 'updates at the correct key');
   t.deepEqual(
-    col.knownIds,
-    RD.success<string[], string[]>(['a', 'b']),
-    'sets knownIds to returned ids'
-  );
-  t.deepEqual(
-    col.entities,
-    {
-      a: RD.success<string[], Item>({ id: 'a', foo: 'quux' }),
-      b: RD.success<string[], Item>(items[1])
-    },
-    'sets entities to { [id: string]: RemoteSuccess(Item) }'
+    col.view(),
+    RD.success<string[], Item[]>([update, items[1]]),
+    'returns the updated key in the view'
   );
 });
 
 test('with items loaded, #withResource on an unknown ID', t => {
-  const col = new RemoteCollection<Item>()
-    .withList('id', items)
-    .withResource('z', { id: 'z', foo: 'zed' });
+  const newResource: Item = { id: 'z', foo: 'zed' };
+  const col = new RemoteCollection<Item>().withList('id', items).withResource('z', newResource);
+
+  t.deepEqual(col.find('z'), RD.success<string[], Item>(newResource), 'adds the new resource');
   t.deepEqual(
-    col.knownIds,
-    RD.success<string[], string[]>(['a', 'b', 'z']),
-    'sets knownIds to returned ids'
-  );
-  t.deepEqual(
-    col.entities,
-    {
-      a: RD.success<string[], Item>(items[0]),
-      b: RD.success<string[], Item>(items[1]),
-      z: RD.success<string[], Item>({ id: 'z', foo: 'zed' })
-    },
-    'sets entities to { [id: string]: RemoteSuccess(Item) }'
+    col.view(),
+    RD.success<string[], Item[]>(items),
+    'does not add the new resource to any views'
   );
 });
 
 test('with item loading failure, #withResource', t => {
-  const col = new RemoteCollection<Item>().withListFailure('Failed').withResource('a', items[0]);
-  t.deepEqual(col.knownIds, RD.success<string[], string[]>(['a']), 'sets knownIds to returned id');
-  t.deepEqual(
-    col.entities,
-    { a: RD.success<string[], Item>(items[0]) },
-    'sets entities to { [id: string]: RemoteSuccess(Item) }'
-  );
+  const col = new RemoteCollection<Item>()
+    .withResourceFailure('a', 'Failed')
+    .withResource('a', items[0]);
+
+  t.deepEqual(col.find('a'), RD.success<string[], Item>(items[0]), 'adds the resource');
 });
