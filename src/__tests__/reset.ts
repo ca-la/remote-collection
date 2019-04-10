@@ -16,7 +16,7 @@ test('with some items loaded, #reset', t => {
 });
 
 test('with view failure, #reset', t => {
-  const col = new RemoteCollection<Item>('id').withListFailure(new Error('Oh no')).reset();
+  const col = new RemoteCollection<Item>('id').withListFailure('Oh no').reset();
 
   t.deepEqual(col.view(), RD.initial, 'view is reset to initial');
 });
