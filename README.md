@@ -397,10 +397,9 @@ assert.deepStrictEqual(
 
 ## concat
 
-Appends a `RemoteCollection` to another. The `source` collection's views are
-added to the *end* of the instance's existing views. The resources in the
-`source` are overwrite any matching sources in the instance, and new resources
-are added.
+Appends a `RemoteCollection` to another. The `source`'s views are added to the
+*end* of the instance's existing views. The resources in the `source` overwrite
+any sources with matching `idProp` in the instance, and new resources are added.
 
 
 ### Signature
