@@ -79,8 +79,6 @@ RemoteCollection<Resource extends { [key: string]: any }>(
 ```ts
 // Initialize a new empty RemoteCollection where the wrapped resource is a `User`
 const collection = new RemoteCollection<User>('id');
-// Initialize a new RemoteCollection as a copy of an existing collection
-const copy = new RemoteCollection<User>('id', collection);
 ```
 
 # Resource Methods
