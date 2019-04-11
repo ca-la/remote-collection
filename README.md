@@ -50,7 +50,7 @@ refetching the whole list, and `RemoteCollection` tracks both states.
 ## Transitioning the RemoteData state
 
 A helpful cheatsheet for how to transition to the different
-[`RemoteData`](https://github.com/ca-la/remote-data) states for collections vs
+[`RemoteData`](https://github.com/ca-la/remote-data) states for views vs
 individual resources:
 
 | Remote State | View | Resource |
