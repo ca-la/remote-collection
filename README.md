@@ -399,16 +399,42 @@ assert.deepStrictEqual(
 
 ## concat
 
-If you need to append to the list, instead of replacing them, use this method.
-It is very similar to `withList`, and takes an optional view key as the third
-argument.
+Appends a `RemoteCollection` to another. The `source` collection's views are
+added to the *end* of the instance's existing views. The resources in the
+`source` are overwrite any matching sources in the instance, and new resources
+are added.
+
 
 ### Signature
 ```ts
 concat(
-  resources: Resource[],
-  viewKey?: string = RemoteCollection.DEFAULT_KEY
+  source: RemoteCollection<Resource>
 ): RemoteCollection<Resource>
+```
+
+### Example
+
+Adding resources to the beginning of a viewKey
+
+```ts
+const users: User[] = [
+  { id: 'a', name: 'Alice' },
+  { id: 'b', name: 'Bob' }
+];
+const otherUsers: User[] =[
+  { id: 'c', name: 'Charlie' }
+];
+const existing = new RemoteCollection<User>('id').withList(otherUsers, 'team1');
+const collection = new RemoteCollection<User>('id').withList(users, 'team1');
+
+assert.deepStrictEqual(
+  collection.concat(existing).view('team1'),
+  RemoteData.success([
+    { id: 'a', name: 'Alice' },
+    { id: 'b', name: 'Bob' },
+    { id: 'c', name: 'Charlie' }
+  ])
+);
 ```
 
 ## map
@@ -425,10 +451,10 @@ map(
 
 ### Example
 ```ts
-  const users: User[] = [
-    { id: 'a', name: 'Alice' },
-    { id: 'b', name: 'Bob' }
-  ];
+const users: User[] = [
+  { id: 'a', name: 'Alice' },
+  { id: 'b', name: 'Bob' }
+];
 const collection = new RemoteCollection<User>('id').withList(users, 'team1');
 
 assert.deepStrictEqual(
