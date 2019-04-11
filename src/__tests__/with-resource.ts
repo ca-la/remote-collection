@@ -12,7 +12,7 @@ test('with no items loaded, #withResource', t => {
 
 test('with items loaded, #withResource on an existing ID', t => {
   const update: Item = { id: 'a', foo: 'quux' };
-  const col = new RemoteCollection<Item>().withList('id', items).withResource('a', update);
+  const col = new RemoteCollection<Item>().withList('id', items).withResource(update);
 
   t.deepEqual(col.find('a'), RD.success<string[], Item>(update), 'updates at the correct key');
   t.deepEqual(
@@ -24,7 +24,7 @@ test('with items loaded, #withResource on an existing ID', t => {
 
 test('with items loaded, #withResource on an unknown ID', t => {
   const newResource: Item = { id: 'z', foo: 'zed' };
-  const col = new RemoteCollection<Item>().withList('id', items).withResource('z', newResource);
+  const col = new RemoteCollection<Item>().withList('id', items).withResource(newResource);
 
   t.deepEqual(col.find('z'), RD.success<string[], Item>(newResource), 'adds the new resource');
   t.deepEqual(
