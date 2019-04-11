@@ -66,14 +66,12 @@ individual resources:
 ## RemoteCollection (Constructor)
 
 Creates a new `RemoteCollection` of a generic `Resource` type. It takes two
-arguments, the first being the key of the identifier on the resource. The second
-optional argument is another `RemoteCollection` to copy into this new instance.
+arguments, the first being the key of the identifier on the resource.
 
 ### Signature
 ```ts
 RemoteCollection<Resource extends { [key: string]: any }>(
-  idProp: keyof Resource,
-  fromCollection?: RemoteCollection<Resource>
+  idProp: keyof Resource
 )
 ```
 
