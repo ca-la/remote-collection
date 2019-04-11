@@ -439,7 +439,9 @@ assert.deepStrictEqual(
 
 ## map
 
-Apply a function to every resource at a view key.
+Apply a function to every resource at a view key. **Note:** Be careful if your
+function updates the property at the `idProp`, since that could invalidate the
+key that is storing the resource.
 
 ### Signature
 ```ts
