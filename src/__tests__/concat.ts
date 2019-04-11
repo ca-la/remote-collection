@@ -86,34 +86,22 @@ test('with non-empty, overlapping collections at different view keys, #concat', 
 
   t.deepEqual(
     col1.concat(col2).view('someViewKey'),
-    RD.success<string[], Item[]>([
-      { id: 'a', foo: 'BAR' },
-      { id: 'b', foo: 'baz' }
-    ]),
+    RD.success<string[], Item[]>([{ id: 'a', foo: 'BAR' }, { id: 'b', foo: 'baz' }]),
     'updates instance resources at the overlapping item'
   );
   t.deepEqual(
     col1.concat(col2).view('someOtherViewKey'),
-    RD.success<string[], Item[]>([
-      { id: 'a', foo: 'BAR' },
-      { id: 'c', foo: 'RAB' }
-    ]),
+    RD.success<string[], Item[]>([{ id: 'a', foo: 'BAR' }, { id: 'c', foo: 'RAB' }]),
     'adds the view at the specified key'
   );
   t.deepEqual(
     col2.concat(col1).view('someViewKey'),
-    RD.success<string[], Item[]>([
-      { id: 'a', foo: 'bar' },
-      { id: 'b', foo: 'baz' }
-    ]),
+    RD.success<string[], Item[]>([{ id: 'a', foo: 'bar' }, { id: 'b', foo: 'baz' }]),
     'adds the view at the specified key'
   );
   t.deepEqual(
     col2.concat(col1).view('someOtherViewKey'),
-    RD.success<string[], Item[]>([
-      { id: 'a', foo: 'bar' },
-      { id: 'c', foo: 'RAB' }
-    ]),
+    RD.success<string[], Item[]>([{ id: 'a', foo: 'bar' }, { id: 'c', foo: 'RAB' }]),
     'updates instance resources at the overlapping item'
   );
 });
