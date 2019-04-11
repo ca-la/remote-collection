@@ -118,21 +118,17 @@ assert.deepStrictEqual(
 
 ## withResource
 
-Add or update a single Resource.
+Add or update a single Resource. Does not add resource to any views, but does
+update the resource based on the `idProp`, so if any views are listing that
+resource, they will see the update.
 
-This method adds a single resource to the `RemoteCollection` representing the
-normal success-case for fetching the collection. If the resource is not
-currently in the set of resources, it is appened to the _end_ of the list at the
-key specified in the third argument. If you do not specify a key, the new
-resource will be appended to the list at `RemoteCollection.DEFAULT_KEY`. If the
-item _does_ exist already, that resource is replaced with the new value
-specified
+If you're trying to add a single resource to a view, you should use
+[`concat`](#concat).
 
 ### Signature
 ```ts
 withResource(
-  resource: Resource,
-  viewKey?: string = RemoteCollection.DEFAULT_KEY
+  resource: Resource
 ): RemoteCollection<Resource>
 ```
 
@@ -141,19 +137,25 @@ withResource(
 const collection = new RemoteCollection<User>('id');
 
 assert.deepStrictEqual(
-  collection.withResource(users.id).find(users[0].id),
+  collection.withResource(users[0]).find(users[0].id),
   RemoteData.success(users[0])
 );
 
 assert.deepStrictEqual(
-  collection.withResource(users.id).view(),
-  RemoteData.success([users[0]])
+  collection.withResource(users[0]).view(),
+  RemoteData.initial
 );
 
 assert.deepStrictEqual(
-  collection.withResource(users.id, 'team1').view('team1'),
-  RemoteData.success([users[0]])
+  collection.withResource(users[0]).view('team1'),
+  RemoteData.initial
 );
+
+assert.deepStrictEqual(
+  collection.withList(users).withResource({ id: 'a', name: 'Alison' }).view(),
+  RemoteData.success([{ id: 'a', name: 'Alison' }, { id: 'b', name: 'Bob' }])
+);
+
 ```
 
 ## withResourceFailure
@@ -412,7 +414,7 @@ concat(
 
 ### Example
 
-Adding resources to the beginning of a viewKey
+Adding resources to the beginning of a view
 
 ```ts
 const users: User[] = [
@@ -431,6 +433,24 @@ assert.deepStrictEqual(
     { id: 'a', name: 'Alice' },
     { id: 'b', name: 'Bob' },
     { id: 'c', name: 'Charlie' }
+  ])
+);
+```
+
+Adding a single resource to a view
+
+```ts
+const users = [{ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }];
+const newUser = { id: 'd', name: 'Derrick' };
+const collection = new RemoteCollection<User>('id').withList(users, 'team1');
+const withNewUser = new RemoteCollection<User>().withList([newUser], 'team1')
+
+assert.deepStrictEqual(
+  collection.concat(withNewUser).view('team1'),
+  RemoteData.success([
+    { id: 'a', name: 'Alice' },
+    { id: 'b', name: 'Bob' },
+    { id: 'd', name: 'Derrick' }
   ])
 );
 ```
