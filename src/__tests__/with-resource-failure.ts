@@ -4,58 +4,34 @@ import RemoteCollection from '../index';
 import { Item, items } from './fixtures';
 
 test('with no items loaded, #withResourceFailure', t => {
-  const col = new RemoteCollection<Item>().withResourceFailure('a', 'Failed');
-  t.deepEqual(col.knownIds, RD.success<string[], string[]>(['a']), 'sets knownIds to returned id');
+  const col = new RemoteCollection<Item>('id').withResourceFailure('a', 'Failed');
+
+  t.deepEqual(col.find('a'), RD.failure<string[], Item>(['Failed']), 'set key to failure');
+});
+
+test('with view loaded, #withResourceFailure on an existing ID', t => {
+  const col = new RemoteCollection<Item>('id').withList(items).withResourceFailure('a', 'Failed');
+
+  t.deepEqual(col.find('a'), RD.failure<string[], Item>(['Failed']), 'set key to failure');
+  t.deepEqual(col.view(), RD.failure<string[], Item[]>(['Failed']), 'set the list to failure');
+});
+
+test('with view loaded, #withResourceFailure on an unknown ID', t => {
+  const col = new RemoteCollection<Item>('id').withList(items).withResourceFailure('z', 'Failed');
+
+  t.deepEqual(col.find('z'), RD.failure<string[], Item>(['Failed']), 'set key to failure');
   t.deepEqual(
-    col.entities,
-    { a: RD.failure<string[], Item>(['Failed']) },
-    'sets entities to { [id: string]: RemoteFailure(Item) }'
+    col.view(),
+    RD.success<string[], Item[]>(items),
+    'does not affect views without that resource'
   );
 });
 
-test('with items loaded, #withResourceFailure on an existing ID', t => {
-  const col = new RemoteCollection<Item>().withList('id', items).withResourceFailure('a', 'Failed');
-  t.deepEqual(
-    col.knownIds,
-    RD.success<string[], string[]>(['a', 'b']),
-    'sets knownIds to returned ids'
-  );
-  t.deepEqual(
-    col.entities,
-    {
-      a: RD.failure<string[], Item>(['Failed']),
-      b: RD.success<string[], Item>(items[1])
-    },
-    'sets entities to { [id: string]: RemoteFailure(Item) }'
-  );
-});
-
-test('with items loaded, #withResourceFailure on an unknown ID', t => {
-  const col = new RemoteCollection<Item>().withList('id', items).withResourceFailure('z', 'Failed');
-  t.deepEqual(
-    col.knownIds,
-    RD.success<string[], string[]>(['a', 'b', 'z']),
-    'sets knownIds to returned ids'
-  );
-  t.deepEqual(
-    col.entities,
-    {
-      a: RD.success<string[], Item>(items[0]),
-      b: RD.success<string[], Item>(items[1]),
-      z: RD.failure<string[], Item>(['Failed'])
-    },
-    'sets entities to { [id: string]: RemoteFailure(Item) }'
-  );
-});
-
-test('with item loading failure, #withResourceFailure', t => {
+test('with view loading failure, #withResourceFailure', t => {
   const col = new RemoteCollection<Item>()
     .withListFailure('Failed')
-    .withResourceFailure('a', 'Failed');
-  t.deepEqual(col.knownIds, RD.success<string[], string[]>(['a']), 'sets knownIds to returned id');
-  t.deepEqual(
-    col.entities,
-    { a: RD.failure<string[], Item>(['Failed']) },
-    'sets entities to { [id: string]: RemoteFailure(Item) }'
-  );
+    .withResourceFailure('a', 'Failure!');
+
+  t.deepEqual(col.view(), RD.failure<string[], Item[]>(['Failure!']));
+  t.deepEqual(col.find('a'), RD.failure<string[], Item>(['Failure!']));
 });

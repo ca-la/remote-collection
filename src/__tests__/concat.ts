@@ -5,80 +5,103 @@ import { Item, items } from './fixtures';
 
 const moreItems = [{ id: 'c', foo: 'test' }, { id: 'd', foo: 'test' }];
 
-test('with non-overlapping two collections', t => {
-  const other = new RemoteCollection<Item>().withList('id', moreItems);
-  const col = new RemoteCollection<Item>().withList('id', items).concat('id', other);
+test('with both collections empty, #concat', t => {
+  const col1 = new RemoteCollection<Item>('id');
+  const col2 = new RemoteCollection<Item>('id');
+
+  t.deepEqual(col1.concat(col2), col1, 'both collections remain empty');
+  t.deepEqual(col2.concat(col1), col1, 'both collections remain empty');
+  t.not(col1.concat(col2), col1, 'returns a copy');
+  t.not(col2.concat(col1), col2, 'returns a copy');
+});
+
+test('with one empty collection, #concat', t => {
+  const col1 = new RemoteCollection<Item>('id').withList(items);
+  const col2 = new RemoteCollection<Item>('id');
+
   t.deepEqual(
-    col.knownIds,
-    RD.success<string[], string[]>(['a', 'b', 'c', 'd']),
-    'appends the additional ids'
+    col1.concat(col2).view(),
+    RD.success<string[], Item[]>(items),
+    'adds items to the end of the view'
   );
   t.deepEqual(
-    col.entities,
-    {
-      a: RD.success<string[], Item>(items[0]),
-      b: RD.success<string[], Item>(items[1]),
-      c: RD.success<string[], Item>(moreItems[0]),
-      d: RD.success<string[], Item>(moreItems[1])
-    },
-    'appends the additional items'
+    col2.concat(col1).view(),
+    RD.success<string[], Item[]>(items),
+    'adds items to the end of the view'
   );
 });
 
-test('with two collections that have id maps', t => {
-  const other = new RemoteCollection<Item>()
-    .withListAt('parentId', 'id', moreItems)
-    .withListAt('otherParentId', 'id', moreItems);
-  const col = new RemoteCollection<Item>().withListAt('parentId', 'id', items).concat('id', other);
+test('with non-empty, non-overlapping collections, #concat', t => {
+  const col1 = new RemoteCollection<Item>('id').withList(items);
+  const col2 = new RemoteCollection<Item>('id').withList(moreItems);
+
   t.deepEqual(
-    col.idMap.value,
-    {
-      parentId: RD.success<string[], string[]>(['a', 'b', 'c', 'd']),
-      otherParentId: RD.success<string[], string[]>(['c', 'd'])
-    },
-    'appends the additional ids'
+    col1.concat(col2).view(),
+    RD.success<string[], Item[]>(items.concat(moreItems)),
+    'adds items to the end of the view'
   );
   t.deepEqual(
-    col.knownIds,
-    RD.success<string[], string[]>(['a', 'b', 'c', 'd']),
-    'appends the additional ids'
-  );
-  t.deepEqual(
-    col.entities,
-    {
-      a: RD.success<string[], Item>(items[0]),
-      b: RD.success<string[], Item>(items[1]),
-      c: RD.success<string[], Item>(moreItems[0]),
-      d: RD.success<string[], Item>(moreItems[1])
-    },
-    'appends the additional items'
+    col2.concat(col1).view(),
+    RD.success<string[], Item[]>(moreItems.concat(items)),
+    'adds items to the end of the view'
   );
 });
 
-test('with the same collection twice', t => {
-  const other = new RemoteCollection<Item>().withList('id', items);
-  const col = new RemoteCollection<Item>().withList('id', items).concat('id', other);
-  t.deepEqual(col.knownIds, RD.success<string[], string[]>(['a', 'b']), 'does not update ids');
+test('with non-empty, overlapping collections, #concat', t => {
+  const overlappingItems = [{ id: 'a', foo: 'BAR' }, { id: 'c', foo: 'RAB' }];
+  const col1 = new RemoteCollection<Item>('id').withList(items);
+  const col2 = new RemoteCollection<Item>('id').withList(overlappingItems);
+
   t.deepEqual(
-    col.entities,
-    {
-      a: RD.success<string[], Item>(items[0]),
-      b: RD.success<string[], Item>(items[1])
-    },
-    'does not update entities'
+    col1.concat(col2).view(),
+    RD.success<string[], Item[]>([
+      { id: 'a', foo: 'BAR' },
+      { id: 'b', foo: 'baz' },
+      { id: 'a', foo: 'BAR' },
+      { id: 'c', foo: 'RAB' }
+    ]),
+    'appends items to the view and updates overlapping items'
+  );
+  t.deepEqual(
+    col2.concat(col1).view(),
+    RD.success<string[], Item[]>([
+      { id: 'a', foo: 'bar' },
+      { id: 'c', foo: 'RAB' },
+      { id: 'a', foo: 'bar' },
+      { id: 'b', foo: 'baz' }
+    ]),
+    'appends items to the view and updates overlapping items'
+  );
+  t.deepEqual(
+    col1.concat(col1).view(),
+    RD.success<string[], Item[]>(items.concat(items)),
+    'appends items to the view'
   );
 });
 
-test('with an empty collection', t => {
-  const other = new RemoteCollection<Item>();
-  const col = new RemoteCollection<Item>().withList('id', items).concat('id', other);
-  t.deepEqual(col.knownIds, RD.success<string[], string[]>(['a', 'b']), 'does not update ids');
+test('with non-empty, overlapping collections at different view keys, #concat', t => {
+  const overlappingItems = [{ id: 'a', foo: 'BAR' }, { id: 'c', foo: 'RAB' }];
+  const col1 = new RemoteCollection<Item>('id').withList(items, 'someViewKey');
+  const col2 = new RemoteCollection<Item>('id').withList(overlappingItems, 'someOtherViewKey');
+
   t.deepEqual(
-    col.entities,
-    {
-      a: RD.success<string[], Item>(items[0]),
-      b: RD.success<string[], Item>(items[1])
-    },
-    'does not update entities'
+    col1.concat(col2).view('someViewKey'),
+    RD.success<string[], Item[]>([{ id: 'a', foo: 'BAR' }, { id: 'b', foo: 'baz' }]),
+    'updates instance resources at the overlapping item'
+  );
+  t.deepEqual(
+    col1.concat(col2).view('someOtherViewKey'),
+    RD.success<string[], Item[]>([{ id: 'a', foo: 'BAR' }, { id: 'c', foo: 'RAB' }]),
+    'adds the view at the specified key'
+  );
+  t.deepEqual(
+    col2.concat(col1).view('someViewKey'),
+    RD.success<string[], Item[]>([{ id: 'a', foo: 'bar' }, { id: 'b', foo: 'baz' }]),
+    'adds the view at the specified key'
+  );
+  t.deepEqual(
+    col2.concat(col1).view('someOtherViewKey'),
+    RD.success<string[], Item[]>([{ id: 'a', foo: 'bar' }, { id: 'c', foo: 'RAB' }]),
+    'updates instance resources at the overlapping item'
   );
 });
