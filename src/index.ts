@@ -177,7 +177,7 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
 
         return other.view(key).caseOf<RemoteCollection<Resource>>({
           initial: acc,
-          failure: (errors: string[]) => acc.withListFailure(key, errors[0] || ''),
+          failure: (errors: string[]) => acc.withListFailure(errors[0] || '', key),
           pending: acc,
           refresh: (resources: Resource[]) =>
             acc.withList(currentViewOrEmpty.concat(resources), key).refresh(key),
@@ -191,7 +191,7 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
     col = other.idMap.reduceWithKey(col, (key: string, acc: RemoteCollection<Resource>) => {
       return other.view(key).caseOf<RemoteCollection<Resource>>({
         initial: acc,
-        failure: (errors: string[]) => acc.withListFailure(key, errors[0] || ''),
+        failure: (errors: string[]) => acc.withListFailure(errors[0] || '', key),
         pending: acc,
         refresh: (resources: Resource[]) => acc.withList(resources, key).refresh(key),
         success: (resources: Resource[]) => acc.withList(resources, key)
