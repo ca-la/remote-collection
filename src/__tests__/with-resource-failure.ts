@@ -28,7 +28,7 @@ test('with view loaded, #withResourceFailure on an unknown ID', t => {
 });
 
 test('with view loading failure, #withResourceFailure', t => {
-  const col = new RemoteCollection<Item>()
+  const col = new RemoteCollection<Item>('id')
     .withListFailure('Failed')
     .withResourceFailure('a', 'Failure!');
 
