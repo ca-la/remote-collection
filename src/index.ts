@@ -61,7 +61,7 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
 
     col.idMap = insert(viewKey, newIds, col.idMap);
     col.entities = list.reduce(
-      (acc, resource) => ({ ...acc, [resource[this.idProp]]: resource }),
+      (acc, resource) => ({ ...acc, [resource[this.idProp]]: RD.success(resource) }),
       col.entities
     );
 
