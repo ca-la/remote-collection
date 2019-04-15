@@ -46,16 +46,13 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
   readonly _A!: Resource;
   readonly _URI!: URI;
 
+  private idProp: keyof Resource;
   public knownIds: RemoteList<string> = RD.initial;
   public idMap: StrMap<RemoteList<string>> = new StrMap({});
   public entities: ById<Remote<Resource>> = {};
 
-  constructor(fromCollection?: RemoteCollection<Resource>) {
-    if (fromCollection) {
-      this.knownIds = fromCollection.knownIds.map(ids => ids.slice());
-      this.idMap = new StrMap(fromCollection.idMap.value);
-      this.entities = { ...fromCollection.entities };
-    }
+  constructor(idProp: keyof Resource) {
+    this.idProp = idProp;
   }
 
   public refreshAt(at: string): RemoteCollection<Resource> {
@@ -109,18 +106,10 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public withListFailureAt(at: string, error: string): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
+  public withListFailure(viewKey: string, error: string): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
 
-    col.idMap = insert(at, RD.failure([error]), col.idMap);
-
-    return col;
-  }
-
-  public withListFailure(error: string): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-    col.knownIds = RD.failure([error]);
-    col.entities = {};
+    col.idMap = insert(viewKey, RD.failure([error]), col.idMap);
 
     return col;
   }
@@ -218,8 +207,8 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public viewAt(at: string): RemoteList<Resource> {
-    return lookup(at, this.idMap)
+  public view(viewKey: string): RemoteList<Resource> {
+    return lookup(viewKey, this.idMap)
       .getOrElse(RD.initial)
       .caseOf<RemoteList<Resource>>({
         failure: RD.failure,
@@ -233,55 +222,47 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
       });
   }
 
-  public view(ids?: string[]): RemoteList<Resource> {
-    const viewIds: RemoteList<string> = ids
-      ? this.knownIds.caseOf<RemoteList<string>>({
-          failure: RD.failure,
-          initial: RD.initial,
-          pending: RD.pending,
-          refresh: () => RD.refresh(ids),
-          success: () => RD.success(ids)
-        })
-      : this.knownIds;
-    return viewIds.caseOf<RemoteList<Resource>>({
-      failure: RD.failure,
-      initial: RD.initial,
-      pending: RD.pending,
-      refresh: knownIds =>
-        view(this.entities, knownIds)
-          .toOption()
-          .fold<RemoteList<Resource>>(RD.pending, RD.refresh),
-      success: knownIds => view(this.entities, knownIds)
-    });
-  }
-
   public find(id: string): Remote<Resource> {
     return safeGet(this.entities, id).getOrElse(RD.initial);
   }
 
-  public concatResources(
-    idProp: keyof Resource,
-    resources: Resource[]
-  ): RemoteCollection<Resource> {
-    return resources.reduce(
-      (acc, resource) => acc.withResource(resource[idProp], resource),
-      new RemoteCollection(this)
+  public concat(other: RemoteCollection<Resource>): RemoteCollection<Resource> {
+    // Add to existing view keys
+    let col = this.idMap.reduceWithKey(
+      new RemoteCollection<Resource>(this.idProp),
+      (key: string, acc: RemoteCollection<Resource>) => {
+        const currentViewOrEmpty = this.view(key).getOrElse([]);
+
+        return other.view(key).caseOf<RemoteCollection<Resource>>({
+          initial: acc,
+          failure: (errors: string[]) => acc.withListFailure(key, errors[0] || ''),
+          pending: acc,
+          refresh: (resources: Resource[]) =>
+            acc.withList(key, currentViewOrEmpty.concat(resources)).refresh(key),
+          success: (resources: Resource[]) => acc.withList(key, currentViewOrEmpty.concat(resources))
+        });
+      }
     );
-  }
 
-  public concat(
-    idProp: keyof Resource,
-    other: RemoteCollection<Resource>
-  ): RemoteCollection<Resource> {
-    const col = new RemoteCollection<Resource>(this);
+    // Add to new view keys
+    col = other.idMap.reduceWithKey(
+      col,
+      (key: string, acc: RemoteCollection<Resource>) => {
+        return other.view(key).caseOf<RemoteCollection<Resource>>({
+          initial: acc,
+          failure: (errors: string[]) => acc.withListFailure(key, errors[0] || ''),
+          pending: acc,
+          refresh: (resources: Resource[]) =>
+            acc.withList(key, resources).refresh(key),
+          success: (resources: Resource[]) => acc.withList(key, resources)
+        })
+      }
+    );
 
-    const concatenated = other
-      .view()
-      .toOption()
-      .fold(col, (bResources: Resource[]) => col.concatResources(idProp, bResources));
-    concatenated.idMap = mergeIdMap(concatenated.idMap, other.idMap);
+    // Merge resources from `other` to this idMap
+    col.idMap = mergeIdMap(col.idMap, other.idMap);
 
-    return concatenated;
+    return col;
   }
 
   private concatKnownId(id: string): RemoteList<string> {
