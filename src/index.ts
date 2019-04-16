@@ -1,6 +1,6 @@
 import { omit, without } from 'lodash';
 import * as RD from '@cala/remote-data';
-import { lookup, insert, StrMap } from 'fp-ts/lib/StrMap';
+import { lookup, insert, StrMap, remove } from 'fp-ts/lib/StrMap';
 import { sequence } from 'fp-ts/lib/Traversable';
 import { array } from 'fp-ts/lib/Array';
 
@@ -131,6 +131,14 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
     const col = new RemoteCollection(this.idProp).concat(this);
 
     col.resources = omit(this.resources, id);
+
+    return col;
+  }
+
+  public reset(viewKey: string = DEFAULT_KEY): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+
+    col.views = remove(viewKey, col.views);
 
     return col;
   }
