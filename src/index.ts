@@ -42,6 +42,80 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
     this.idProp = idProp;
   }
 
+  public concat(other: RemoteCollection<Resource>): RemoteCollection<Resource> {
+    const col = new RemoteCollection<Resource>(this.idProp);
+
+    // Add ID to existing view keys
+    col.views = other.views.reduceWithKey(
+      new StrMap<RemoteList<string>>(this.views.value),
+      (key, acc, remoteList) => {
+        const existingList = lookup(key, acc);
+        const concatenated = existingList.fold(remoteList, existing =>
+          existing.chain(list => remoteList.map(l => list.concat(l)))
+        );
+
+        return insert(key, concatenated, acc);
+      }
+    );
+
+    // Merge resources from `other` to this entities map
+    col.resources = Object.keys(other.resources).reduce(
+      (acc, key) => ({ ...acc, [key]: other.resources[key] }),
+      this.resources
+    );
+
+    return col;
+  }
+
+  public fetch(id: string): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+    const currentValue = safeGet(this.resources, id);
+    col.resources = {
+      ...this.resources,
+      [id]: currentValue.fold<Remote<Resource>>(RD.pending, (value: Remote<Resource>) =>
+        value.toOption().fold<Remote<Resource>>(RD.pending, RD.refresh)
+      )
+    };
+
+    return col;
+  }
+
+  public find(id: string): Remote<Resource> {
+    return safeGet(this.resources, id).getOrElse(RD.initial);
+  }
+
+  public mapResource(
+    id: string,
+    mapFunction: (resource: Resource) => Resource
+  ): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+
+    const existingResource = col.resources[id];
+    if (!existingResource) {
+      return col;
+    }
+
+    col.resources = {
+      ...this.resources,
+      [id]: existingResource.map(mapFunction)
+    };
+
+    return col;
+  }
+
+  public omit(id: string, viewKey: string = DEFAULT_KEY): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+    const existingIds = lookup(viewKey, col.views).map(remoteList =>
+      remoteList.map(idList => without(idList, id))
+    );
+
+    if (existingIds.isSome()) {
+      col.views = insert(viewKey, existingIds.getOrElse(RD.initial), col.views);
+    }
+
+    return col;
+  }
+
   public refresh(viewKey: string = DEFAULT_KEY): RemoteCollection<Resource> {
     const col = new RemoteCollection(this.idProp).concat(this);
     const existingList = lookup(viewKey, col.views)
@@ -49,6 +123,14 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
       .toOption()
       .fold<RD.RemoteData<string[], string[]>>(RD.pending, RD.refresh);
     col.views = insert(viewKey, existingList, col.views);
+
+    return col;
+  }
+
+  public remove(id: string): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+
+    col.resources = omit(this.resources, id);
 
     return col;
   }
@@ -76,43 +158,11 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
     return col;
   }
 
-  public fetch(id: string): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this.idProp).concat(this);
-    const currentValue = safeGet(this.resources, id);
-    col.resources = {
-      ...this.resources,
-      [id]: currentValue.fold<Remote<Resource>>(RD.pending, (value: Remote<Resource>) =>
-        value.toOption().fold<Remote<Resource>>(RD.pending, RD.refresh)
-      )
-    };
-
-    return col;
-  }
-
   public withResource(resource: Resource): RemoteCollection<Resource> {
     const col = new RemoteCollection(this.idProp).concat(this);
     col.resources = {
       ...this.resources,
       [resource[this.idProp]]: RD.success(resource)
-    };
-
-    return col;
-  }
-
-  public mapResource(
-    id: string,
-    mapFunction: (resource: Resource) => Resource
-  ): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this.idProp).concat(this);
-
-    const existingResource = col.resources[id];
-    if (!existingResource) {
-      return col;
-    }
-
-    col.resources = {
-      ...this.resources,
-      [id]: existingResource.map(mapFunction)
     };
 
     return col;
@@ -124,27 +174,6 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
       ...this.resources,
       [id]: RD.failure([error])
     };
-
-    return col;
-  }
-
-  public omit(id: string, viewKey: string = DEFAULT_KEY): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this.idProp).concat(this);
-    const existingIds = lookup(viewKey, col.views).map(remoteList =>
-      remoteList.map(idList => without(idList, id))
-    );
-
-    if (existingIds.isSome()) {
-      col.views = insert(viewKey, existingIds.getOrElse(RD.initial), col.views);
-    }
-
-    return col;
-  }
-
-  public remove(id: string): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this.idProp).concat(this);
-
-    col.resources = omit(this.resources, id);
 
     return col;
   }
@@ -162,34 +191,5 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
             .fold<RemoteList<Resource>>(RD.pending, RD.refresh),
         success: knownIds => view(this.resources, knownIds)
       });
-  }
-
-  public find(id: string): Remote<Resource> {
-    return safeGet(this.resources, id).getOrElse(RD.initial);
-  }
-
-  public concat(other: RemoteCollection<Resource>): RemoteCollection<Resource> {
-    const col = new RemoteCollection<Resource>(this.idProp);
-
-    // Add ID to existing view keys
-    col.views = other.views.reduceWithKey(
-      new StrMap<RemoteList<string>>(this.views.value),
-      (key, acc, remoteList) => {
-        const existingList = lookup(key, acc);
-        const concatenated = existingList.fold(remoteList, existing =>
-          existing.chain(list => remoteList.map(l => list.concat(l)))
-        );
-
-        return insert(key, concatenated, acc);
-      }
-    );
-
-    // Merge resources from `other` to this entities map
-    col.resources = Object.keys(other.resources).reduce(
-      (acc, key) => ({ ...acc, [key]: other.resources[key] }),
-      this.resources
-    );
-
-    return col;
   }
 }
