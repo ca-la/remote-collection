@@ -84,6 +84,23 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
     return lookup(id, this.resources).getOrElse(RD.initial);
   }
 
+  public map(
+    mapFunction: (resource: Resource) => Resource,
+    viewKey: string = DEFAULT_KEY
+  ): RemoteCollection<Resource> {
+    const mapped = new RemoteCollection(this.idProp);
+
+    mapped.resources = lookup(viewKey, this.views)
+      .getOrElse(RD.initial)
+      .reduce(
+        (acc, idList) =>
+          idList.reduce((ac, id) => insert(id, this.find(id).map(mapFunction), ac), acc),
+        mapped.resources
+      );
+
+    return this.concat(mapped);
+  }
+
   public mapResource(
     id: string,
     mapFunction: (resource: Resource) => Resource
