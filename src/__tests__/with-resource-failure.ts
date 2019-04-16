@@ -32,6 +32,6 @@ test('with view loading failure, #withResourceFailure', t => {
     .withListFailure('Failed')
     .withResourceFailure('a', 'Failure!');
 
-  t.deepEqual(col.view(), RD.failure<string[], Item[]>(['Failure!']));
+  t.deepEqual(col.view(), RD.failure<string[], Item[]>(['Failed']));
   t.deepEqual(col.find('a'), RD.failure<string[], Item>(['Failure!']));
 });
