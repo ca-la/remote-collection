@@ -1,11 +1,10 @@
-import { omit, without } from 'lodash';
+import { without } from 'lodash';
 import * as RD from '@cala/remote-data';
 import { lookup, insert, StrMap, remove } from 'fp-ts/lib/StrMap';
 import { sequence } from 'fp-ts/lib/Traversable';
 import { array } from 'fp-ts/lib/Array';
 
-import { ById, Remote, RemoteList, RemoteById } from './types';
-import { safeGet } from './utils';
+import { Remote, RemoteList } from './types';
 
 export const URI = '@cala/remote-collection';
 export type URI = typeof URI;
@@ -16,15 +15,13 @@ declare module 'fp-ts/lib/HKT' {
   }
 }
 
-const view = <A>(entities: RemoteById<A>, ids: string[]): RemoteList<A> => {
+const view = <A>(entities: StrMap<Remote<A>>, ids: string[]): RemoteList<A> => {
   const s = sequence(RD.remoteData, array);
 
   return s(
     ids.reduce(
       (resources: Remote<A>[], id: string) =>
-        safeGet<Remote<A>>(entities, id).fold<Remote<A>[]>(resources, (a: Remote<A>) =>
-          resources.concat(a)
-        ),
+        lookup(id, entities).fold<Remote<A>[]>(resources, (a: Remote<A>) => resources.concat(a)),
       []
     )
   );
@@ -36,7 +33,7 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
 
   private idProp: keyof Resource;
   public views: StrMap<RemoteList<string>> = new StrMap({});
-  public resources: ById<Remote<Resource>> = {};
+  public resources: StrMap<Remote<Resource>> = new StrMap({});
 
   constructor(idProp: keyof Resource) {
     this.idProp = idProp;
@@ -59,9 +56,8 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
     );
 
     // Merge resources from `other` to this entities map
-    col.resources = Object.keys(other.resources).reduce(
-      (acc, key) => ({ ...acc, [key]: other.resources[key] }),
-      this.resources
+    col.resources = other.resources.reduceWithKey(this.resources, (key, acc, resource) =>
+      insert(key, resource, acc)
     );
 
     return col;
@@ -69,19 +65,23 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
 
   public fetch(id: string): RemoteCollection<Resource> {
     const col = new RemoteCollection(this.idProp).concat(this);
-    const currentValue = safeGet(this.resources, id);
-    col.resources = {
-      ...this.resources,
-      [id]: currentValue.fold<Remote<Resource>>(RD.pending, (value: Remote<Resource>) =>
-        value.toOption().fold<Remote<Resource>>(RD.pending, RD.refresh)
-      )
-    };
+    const resourceSetToFetching = this.find(id).caseOf<
+      RD.RemotePending<string[], Resource> | RD.RemoteRefresh<string[], Resource>
+    >({
+      initial: RD.pending,
+      failure: () => RD.pending,
+      pending: RD.pending,
+      refresh: RD.refresh,
+      success: RD.refresh
+    });
+
+    col.resources = insert(id, resourceSetToFetching, col.resources);
 
     return col;
   }
 
   public find(id: string): Remote<Resource> {
-    return safeGet(this.resources, id).getOrElse(RD.initial);
+    return lookup(id, this.resources).getOrElse(RD.initial);
   }
 
   public mapResource(
@@ -90,15 +90,7 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
   ): RemoteCollection<Resource> {
     const col = new RemoteCollection(this.idProp).concat(this);
 
-    const existingResource = col.resources[id];
-    if (!existingResource) {
-      return col;
-    }
-
-    col.resources = {
-      ...this.resources,
-      [id]: existingResource.map(mapFunction)
-    };
+    col.resources = insert(id, this.find(id).map(mapFunction), this.resources);
 
     return col;
   }
@@ -130,7 +122,7 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
   public remove(id: string): RemoteCollection<Resource> {
     const col = new RemoteCollection(this.idProp).concat(this);
 
-    col.resources = omit(this.resources, id);
+    col.resources = remove(id, this.resources);
 
     return col;
   }
@@ -150,12 +142,8 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
     const newIds = RD.success<string[], string[]>(resourceIds);
 
     col.views = insert(viewKey, newIds, col.views);
-    col.resources = list.reduce(
-      (acc, resource) => ({ ...acc, [resource[this.idProp]]: RD.success(resource) }),
-      col.resources
-    );
 
-    return col;
+    return list.reduce((acc, resource) => acc.withResource(resource), col);
   }
 
   public withListFailure(error: string, viewKey: string = DEFAULT_KEY): RemoteCollection<Resource> {
@@ -168,20 +156,16 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
 
   public withResource(resource: Resource): RemoteCollection<Resource> {
     const col = new RemoteCollection(this.idProp).concat(this);
-    col.resources = {
-      ...this.resources,
-      [resource[this.idProp]]: RD.success(resource)
-    };
+
+    col.resources = insert(resource[this.idProp], RD.success(resource), col.resources);
 
     return col;
   }
 
   public withResourceFailure(id: string, error: string): RemoteCollection<Resource> {
     const col = new RemoteCollection(this.idProp).concat(this);
-    col.resources = {
-      ...this.resources,
-      [id]: RD.failure([error])
-    };
+
+    col.resources = insert(id, RD.failure([error]), col.resources);
 
     return col;
   }
