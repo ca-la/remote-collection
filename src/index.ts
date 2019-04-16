@@ -169,39 +169,25 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
   }
 
   public concat(other: RemoteCollection<Resource>): RemoteCollection<Resource> {
-    // Add to existing view keys
-    let col = this.idMap.reduceWithKey(
-      new RemoteCollection<Resource>(this.idProp),
-      (key: string, acc: RemoteCollection<Resource>) => {
-        const currentViewOrEmpty = this.view(key).getOrElse([]);
+    const col = new RemoteCollection<Resource>(this.idProp);
 
-        return other.view(key).caseOf<RemoteCollection<Resource>>({
-          initial: acc,
-          failure: (errors: string[]) => acc.withListFailure(errors[0] || '', key),
-          pending: acc,
-          refresh: (resources: Resource[]) =>
-            acc.withList(currentViewOrEmpty.concat(resources), key).refresh(key),
-          success: (resources: Resource[]) =>
-            acc.withList(currentViewOrEmpty.concat(resources), key)
-        });
+    // Add ID to existing view keys
+    col.idMap = other.idMap.reduceWithKey(
+      new StrMap<RemoteList<string>>(this.idMap.value),
+      (key, acc, remoteList) => {
+        const existingList = lookup(key, acc);
+        const concatenated = existingList.fold(remoteList, existing =>
+          existing.chain(list => remoteList.map(l => list.concat(l)))
+        );
+
+        return insert(key, concatenated, acc);
       }
     );
 
-    // Add to new view keys
-    col = other.idMap.reduceWithKey(col, (key: string, acc: RemoteCollection<Resource>) => {
-      return other.view(key).caseOf<RemoteCollection<Resource>>({
-        initial: acc,
-        failure: (errors: string[]) => acc.withListFailure(errors[0] || '', key),
-        pending: acc,
-        refresh: (resources: Resource[]) => acc.withList(resources, key).refresh(key),
-        success: (resources: Resource[]) => acc.withList(resources, key)
-      });
-    });
-
-    // Merge resources from `other` to this idMap
-    col.entities = Object.keys(col.entities).reduce(
+    // Merge resources from `other` to this entities map
+    col.entities = Object.keys(other.entities).reduce(
       (acc, key) => ({ ...acc, [key]: other.entities[key] }),
-      col.entities
+      this.entities
     );
 
     return col;
