@@ -20,13 +20,23 @@ test('with item loading errors, #view with no passed IDs', t => {
     RD.failure(['There was a problem loading the list']),
     'returns the item loading error'
   );
-  t.deepEqual(col.view('someViewKey'), RD.initial, 'returns initial for missing keys');
+  t.deepEqual(
+    col.view('someViewKey'),
+    RD.initial,
+    'returns initial for missing keys'
+  );
 });
 
 test('with items loaded, #view', t => {
-  const col = new RemoteCollection<Item>('id').withList(items).withList(items, 'someViewKey');
+  const col = new RemoteCollection<Item>('id')
+    .withList(items)
+    .withList(items, 'someViewKey');
 
   t.deepEqual(col.view(), RD.success(items), 'returns items');
   t.deepEqual(col.view('someViewKey'), RD.success(items), 'returns items');
-  t.deepEqual(col.view('someOtherViewKey'), RD.initial, 'returns initial for view keys not set');
+  t.deepEqual(
+    col.view('someOtherViewKey'),
+    RD.initial,
+    'returns initial for view keys not set'
+  );
 });

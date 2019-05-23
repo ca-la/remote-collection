@@ -27,7 +27,10 @@ test('with no items loaded at the view key, #reset', t => {
     .reset('someViewKey');
 
   t.deepEqual(col.view('someViewKey'), RD.initial, 'view is set to initial');
-  t.deepEqual(col.view('someOtherViewKey'), RD.success<string[], Item[]>(items));
+  t.deepEqual(
+    col.view('someOtherViewKey'),
+    RD.success<string[], Item[]>(items)
+  );
 });
 
 test('with some items loaded, #reset', t => {
@@ -37,7 +40,10 @@ test('with some items loaded, #reset', t => {
     .reset('someViewKey');
 
   t.deepEqual(col.view('someViewKey'), RD.initial, 'view is set to initial');
-  t.deepEqual(col.view('someOtherViewKey'), RD.success<string[], Item[]>(items));
+  t.deepEqual(
+    col.view('someOtherViewKey'),
+    RD.success<string[], Item[]>(items)
+  );
 });
 
 test('with view failure, #reset', t => {
@@ -47,5 +53,8 @@ test('with view failure, #reset', t => {
     .reset();
 
   t.deepEqual(col.view('someViewKey'), RD.initial, 'view is set to initial');
-  t.deepEqual(col.view('someOtherViewKey'), RD.success<string[], Item[]>(items));
+  t.deepEqual(
+    col.view('someOtherViewKey'),
+    RD.success<string[], Item[]>(items)
+  );
 });

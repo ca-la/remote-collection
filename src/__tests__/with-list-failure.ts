@@ -9,7 +9,11 @@ test('with no items loaded, #withListFailure', t => {
     .withListFailure('Failed', 'someViewKey')
     .withListFailure('Failure!', 'someOtherViewKey');
 
-  t.deepEqual(col.view(), RD.failure<string[], Item[]>(['Fail!']), 'sets the view to failure');
+  t.deepEqual(
+    col.view(),
+    RD.failure<string[], Item[]>(['Fail!']),
+    'sets the view to failure'
+  );
   t.deepEqual(
     col.view('someViewKey'),
     RD.failure<string[], Item[]>(['Failed']),
@@ -23,7 +27,9 @@ test('with no items loaded, #withListFailure', t => {
 });
 
 test('with items loaded, #withList', t => {
-  const col = new RemoteCollection<Item>('id').withList(items).withListFailure('Failed');
+  const col = new RemoteCollection<Item>('id')
+    .withList(items)
+    .withListFailure('Failed');
 
   t.deepEqual(col.view(), RD.failure<string[], Item[]>(['Failed']));
 });
