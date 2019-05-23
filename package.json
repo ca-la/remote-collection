@@ -8,13 +8,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
-    "test": "npm run lint && npm run prettier && npm run ava",
-    "lint": "tslint -c tslint.json --project tsconfig.json './src/**/*.ts'",
-    "ava": "ava",
-    "prettier": "prettier --list-different './src/**/*.ts'",
-    "prettier:fix": "prettier --write './src/**/*.ts'",
-    "prepublishOnly": "npm run test && npm run build"
+    "test": "bin/test",
+    "prepublishOnly": "bin/test && bin/build"
   },
   "repository": {
     "type": "git",
@@ -37,13 +32,10 @@
   "homepage": "https://gitlab.com/ca-la/remote-collection#readme",
   "devDependencies": {
     "@types/lodash": "^4.14.116",
-    "ava": "^1.1.0",
+    "ava": "^1.4.1",
     "prettier": "^1.14.3",
     "ts-node": "^7.0.1",
     "tslib": "^1.9.3",
-    "tslint": "^5.11.0",
-    "tslint-config-prettier": "^1.15.0",
-    "tslint-plugin-prettier": "^2.0.0",
     "typescript": "^3.2.2"
   },
   "publishConfig": {
