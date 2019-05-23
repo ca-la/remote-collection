@@ -10,7 +10,11 @@ test('with no items loaded, #remove', t => {
 
 test('with items loaded, #remove on an existing ID', t => {
   const col = new RemoteCollection<Item>('id').withList(items).remove('a');
-  t.deepEqual(col.find('a'), RD.initial, 'removes the resource at the given ID');
+  t.deepEqual(
+    col.find('a'),
+    RD.initial,
+    'removes the resource at the given ID'
+  );
   t.deepEqual(
     col.find('b'),
     RD.success<string[], Item>(items[1]),
