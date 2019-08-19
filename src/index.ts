@@ -250,6 +250,7 @@ export function fromJSON<A>(_: string, value: any): RemoteCollection<A> {
       value.idProp
     );
 
+    // TODO: Make this check for which "version" of RemoteCollection you're using and do the conversion
     remoteCollection.views = new StrMap<RemoteList<string>>(
       value.views.value
     ).map(RD.fromJSON);
