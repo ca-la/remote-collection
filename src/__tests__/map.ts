@@ -12,25 +12,38 @@ test('with no items in the view, #map', t => {
 });
 
 test('with view in the success state, #map', t => {
-  const collection = new RemoteCollection<Item>('id').withList(items).map(uppercaseFoo);
+  const collection = new RemoteCollection<Item>('id')
+    .withList(items)
+    .map(uppercaseFoo);
 
   t.deepEqual(
     collection.view(),
-    RD.success<string[], Item[]>([{ id: 'a', foo: 'BAR' }, { id: 'b', foo: 'BAZ' }]),
+    RD.success<string[], Item[]>([
+      { id: 'a', foo: 'BAR' },
+      { id: 'b', foo: 'BAZ' }
+    ]),
     'applies the function to the resources at the key'
   );
 });
 
 test('with view in the pending state, #map', t => {
-  const collection = new RemoteCollection<Item>('id').refresh().map(uppercaseFoo);
+  const collection = new RemoteCollection<Item>('id')
+    .refresh()
+    .map(uppercaseFoo);
 
   t.deepEqual(collection.view(), RD.pending, 'is a no-op');
 });
 
 test('with view in the failure state, #map', t => {
-  const collection = new RemoteCollection<Item>('id').withListFailure('Oh no').map(uppercaseFoo);
+  const collection = new RemoteCollection<Item>('id')
+    .withListFailure('Oh no')
+    .map(uppercaseFoo);
 
-  t.deepEqual(collection.view(), RD.failure<string[], Item[]>(['Oh no']), 'is a no-op');
+  t.deepEqual(
+    collection.view(),
+    RD.failure<string[], Item[]>(['Oh no']),
+    'is a no-op'
+  );
 });
 
 test('with view in the refreshing state, #map', t => {
@@ -41,7 +54,10 @@ test('with view in the refreshing state, #map', t => {
 
   t.deepEqual(
     collection.view(),
-    RD.refresh<string[], Item[]>([{ id: 'a', foo: 'BAR' }, { id: 'b', foo: 'BAZ' }]),
+    RD.refresh<string[], Item[]>([
+      { id: 'a', foo: 'BAR' },
+      { id: 'b', foo: 'BAZ' }
+    ]),
     'applies the function to the resources at the key'
   );
 });
@@ -67,13 +83,19 @@ test('with overlapping resources in separate views, #map', t => {
 
   t.deepEqual(
     collection.view('someViewKey'),
-    RD.success<string[], Item[]>([{ id: 'a', foo: 'RAB' }, { id: 'b', foo: 'baz' }]),
+    RD.success<string[], Item[]>([
+      { id: 'a', foo: 'RAB' },
+      { id: 'b', foo: 'baz' }
+    ]),
     'applies the function to the resources at the key updating the overlap'
   );
 
   t.deepEqual(
     collection.view('someOtherViewKey'),
-    RD.success<string[], Item[]>([{ id: 'a', foo: 'RAB' }, { id: 'c', foo: 'RBA' }]),
+    RD.success<string[], Item[]>([
+      { id: 'a', foo: 'RAB' },
+      { id: 'c', foo: 'RBA' }
+    ]),
     'applies the function to the resources at the key'
   );
 });

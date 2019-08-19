@@ -8,13 +8,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
-    "test": "npm run lint && npm run prettier && npm run ava",
-    "lint": "tslint -c tslint.json --project tsconfig.json './src/**/*.ts'",
-    "ava": "ava",
-    "prettier": "prettier --list-different './src/**/*.ts'",
-    "prettier:fix": "prettier --write './src/**/*.ts'",
-    "prepublishOnly": "npm run test && npm run build"
+    "test": "bin/test",
+    "prepublishOnly": "bin/test && bin/build"
   },
   "repository": {
     "type": "git",

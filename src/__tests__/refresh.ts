@@ -30,5 +30,9 @@ test('with view loading failure, #refresh', t => {
 test('with items loaded, #refresh', t => {
   const col = new RemoteCollection<Item>('id').withList(items).refresh();
 
-  t.deepEqual(col.view(), RD.refresh<string[], Item[]>(items), 'Sets the view to refresh');
+  t.deepEqual(
+    col.view(),
+    RD.refresh<string[], Item[]>(items),
+    'Sets the view to refresh'
+  );
 });
