@@ -22,7 +22,7 @@ test('de/serialize with RemoteInitial', t => {
   t.deepEqual(col, JSON.parse(JSON.stringify(col), fromJSON), 'serializes and deserializes');
 });
 
-test('de/serialize with RemoteRefresh', t => {
+test('de/serialize with RemotePending', t => {
   const col = new Collection<Item>().refresh();
   t.deepEqual(col, JSON.parse(JSON.stringify(col), fromJSON), 'serializes and deserializes');
 });
