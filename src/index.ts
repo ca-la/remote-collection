@@ -241,18 +241,21 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
       resources: this.resources,
       views: this.views
     };
-  }}
+  }
+}
 
 export function fromJSON<A>(_: string, value: any): RemoteCollection<A> {
   if (value && value._URI === URI) {
-    const remoteCollection: RemoteCollection<A> = new RemoteCollection<A>(value.idProp);
+    const remoteCollection: RemoteCollection<A> = new RemoteCollection<A>(
+      value.idProp
+    );
 
-    remoteCollection.views = new StrMap<RemoteList<string>>(value.views.value).map(
-      (idList: RemoteList<string>) => RD.fromJSON(idList)
-    );
-    remoteCollection.resources = new StrMap<Remote<A>>(value.resources.value).map(
-      (resource: Remote<A>) => RD.fromJSON(resource)
-    );
+    remoteCollection.views = new StrMap<RemoteList<string>>(
+      value.views.value
+    ).map(RD.fromJSON);
+    remoteCollection.resources = new StrMap<Remote<A>>(
+      value.resources.value
+    ).map(RD.fromJSON);
 
     return remoteCollection;
   }
