@@ -285,4 +285,35 @@ export default class Collection<Resource extends { [key: string]: any }> {
       success: value => RD.success(union(value, [id]))
     });
   }
+
+  public toJSON(): {
+    _URI: URI;
+    knownIds: RemoteList<string>;
+    idMap: ById<RemoteList<string>>;
+    entities: ById<Remote<Resource>>;
+  } {
+    return {
+      _URI: URI,
+      knownIds: this.knownIds,
+      idMap: this.idMap.value,
+      entities: this.entities
+    };
+  }
+}
+
+export function fromJSON<A>(_: string, value: any): Collection<A> {
+  if (value && value._URI === URI) {
+    const remoteCollection: Collection<A> = new Collection<A>();
+    remoteCollection.entities = new StrMap<Remote<A>>(value.entities).map((entity: Remote<A>) =>
+      RD.fromJSON(entity)
+    ).value as ById<Remote<A>>;
+    remoteCollection.knownIds = RD.fromJSON(value.knownIds);
+    remoteCollection.idMap = new StrMap<RemoteList<string>>(value.idMap).map(
+      (idList: RemoteList<string>) => RD.fromJSON(idList)
+    );
+
+    return remoteCollection;
+  }
+
+  return value;
 }
