@@ -1,5 +1,5 @@
 import { fromPairs, mapValues, omit, union, without } from 'lodash';
-import * as RD from '@cala/remote-data';
+import RD, { fromJSON as fromRemoteJSON } from '@cala/remote-data';
 import { lookup, insert, StrMap, toArray } from 'fp-ts/lib/StrMap';
 import { Option } from 'fp-ts/lib/Option';
 import { sequence } from 'fp-ts/lib/Traversable';
@@ -285,4 +285,35 @@ export default class Collection<Resource extends { [key: string]: any }> {
       success: value => RD.success(union(value, [id]))
     });
   }
+
+  public toJSON(): {
+    _URI: URI;
+    knownIds: RemoteList<string>;
+    idMap: ById<RemoteList<string>>;
+    entities: ById<Remote<Resource>>;
+  } {
+    return {
+      _URI: URI,
+      knownIds: this.knownIds,
+      idMap: this.idMap.value,
+      entities: this.entities
+    };
+  }
+}
+
+export function fromJSON<A>(_: string, value: any): Collection<A> {
+  if (value && value._URI === URI) {
+    const remoteCollection: Collection<A> = new Collection<A>();
+    remoteCollection.entities = new StrMap<Remote<A>>(value.entities).map((entity: Remote<A>) =>
+      fromRemoteJSON(entity)
+    ).value as ById<Remote<A>>;
+    remoteCollection.knownIds = fromRemoteJSON(value.knownIds);
+    remoteCollection.idMap = new StrMap<RemoteList<string>>(value.idMap).map(
+      (idList: RemoteList<string>) => fromRemoteJSON(idList)
+    );
+
+    return remoteCollection;
+  }
+
+  return value;
 }
