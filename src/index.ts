@@ -5,6 +5,7 @@ import { sequence } from 'fp-ts/lib/Traversable';
 import { array } from 'fp-ts/lib/Array';
 
 import { Remote, RemoteList } from './types';
+import * as compat from './compat';
 
 export const URI = '@cala/remote-collection';
 export type URI = typeof URI;
@@ -244,13 +245,24 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
   }
 }
 
-export function fromJSON<A>(_: string, value: any): RemoteCollection<A> {
-  if (value && value._URI === URI) {
+function isRemoteCollectionJSON<A>(
+  candidate: any
+): candidate is RemoteCollectionJSON<A> {
+  return (
+    candidate &&
+    candidate._URI === URI &&
+    'views' in candidate &&
+    'resources' in candidate &&
+    'idProp' in candidate
+  );
+}
+
+export function fromJSON<A>(_: string, value: unknown): RemoteCollection<A> | unknown {
+  if (isRemoteCollectionJSON<A>(value)) {
     const remoteCollection: RemoteCollection<A> = new RemoteCollection<A>(
       value.idProp
     );
 
-    // TODO: Make this check for which "version" of RemoteCollection you're using and do the conversion
     remoteCollection.views = new StrMap<RemoteList<string>>(
       value.views.value
     ).map(RD.fromJSON);
@@ -259,6 +271,9 @@ export function fromJSON<A>(_: string, value: any): RemoteCollection<A> {
     ).map(RD.fromJSON);
 
     return remoteCollection;
+  } else if (compat.isLegacyJSON(value)) {
+    // TODO: Figure out a better way to set the `idProp`
+    return compat.fromJSON('id', value);
   }
 
   return value;

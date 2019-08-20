@@ -1,3 +1,4 @@
+import * as RD from '@cala/remote-data';
 import test from 'ava';
 import { Item, items } from './fixtures';
 import RemoteCollection, { fromJSON } from '..';
@@ -65,4 +66,22 @@ test('de/serialize with RemoteFailure', t => {
     JSON.parse(JSON.stringify(col), fromJSON),
     'serializes and deserializes'
   );
+});
+
+test('de/serialize with legacy JSON', t => {
+  const legacy = {
+    _URI: '@cala/remote-collection',
+    knownIds: RD.success(['a', 'b']),
+    idMap: {
+      parentId: RD.success(['a'])
+    },
+    entities: {
+      a: RD.success(items[0]),
+      b: RD.success(items[1])
+    }
+  };
+  const col = new RemoteCollection<Item>('id')
+    .withList(items)
+    .withList([items[0]], 'parentId');
+  t.deepEqual(col, JSON.parse(JSON.stringify(legacy), fromJSON));
 });
