@@ -1,27 +1,35 @@
-import { fromPairs, mapValues, omit, union, without } from 'lodash';
+import { without } from 'lodash';
 import * as RD from '@cala/remote-data';
-import { lookup, insert, StrMap, toArray } from 'fp-ts/lib/StrMap';
+import { lookup, insert, StrMap, remove } from 'fp-ts/lib/StrMap';
 import { sequence } from 'fp-ts/lib/Traversable';
 import { array } from 'fp-ts/lib/Array';
 
-import { ById, Remote, RemoteList, RemoteById } from './types';
-import { safeGet } from './utils';
+import { Remote, RemoteList } from './types';
+import * as compat from './compat';
 
 export const URI = '@cala/remote-collection';
 export type URI = typeof URI;
+export const DEFAULT_KEY = `${URI}_DEFAULT_KEY`;
 declare module 'fp-ts/lib/HKT' {
   interface URI2HKT1<A> {
     '@cala/remote-collection': RemoteCollection<A>;
   }
 }
 
-const view = <A>(entities: RemoteById<A>, ids: string[]): RemoteList<A> => {
+export interface RemoteCollectionJSON<A> {
+  _URI: URI;
+  idProp: keyof A;
+  resources: StrMap<Remote<A>>;
+  views: StrMap<RemoteList<string>>;
+}
+
+const view = <A>(entities: StrMap<Remote<A>>, ids: string[]): RemoteList<A> => {
   const s = sequence(RD.remoteData, array);
 
   return s(
     ids.reduce(
       (resources: Remote<A>[], id: string) =>
-        safeGet<Remote<A>>(entities, id).fold<Remote<A>[]>(resources, (a: Remote<A>) =>
+        lookup(id, entities).fold<Remote<A>[]>(resources, (a: Remote<A>) =>
           resources.concat(a)
         ),
       []
@@ -29,269 +37,244 @@ const view = <A>(entities: RemoteById<A>, ids: string[]): RemoteList<A> => {
   );
 };
 
-const mergeIdMap = (
-  target: StrMap<RemoteList<string>>,
-  source: StrMap<RemoteList<string>>
-): StrMap<RemoteList<string>> => {
-  return toArray(source).reduce((acc, [sourceKey, remoteList]) => {
-    const existingList = lookup(sourceKey, acc);
-    const concatenated = existingList.fold(remoteList, existing =>
-      existing.chain(list => remoteList.map(l => list.concat(l)))
-    );
-    return insert(sourceKey, concatenated, acc);
-  }, new StrMap<RemoteList<string>>(target.value));
-};
-
 export default class RemoteCollection<Resource extends { [key: string]: any }> {
   readonly _A!: Resource;
   readonly _URI!: URI;
 
-  public knownIds: RemoteList<string> = RD.initial;
-  public idMap: StrMap<RemoteList<string>> = new StrMap({});
-  public entities: ById<Remote<Resource>> = {};
+  private idProp: keyof Resource;
+  public views: StrMap<RemoteList<string>> = new StrMap({});
+  public resources: StrMap<Remote<Resource>> = new StrMap({});
 
-  constructor(fromCollection?: RemoteCollection<Resource>) {
-    if (fromCollection) {
-      this.knownIds = fromCollection.knownIds.map(ids => ids.slice());
-      this.idMap = new StrMap(fromCollection.idMap.value);
-      this.entities = { ...fromCollection.entities };
-    }
+  constructor(idProp: keyof Resource) {
+    this.idProp = idProp;
   }
 
-  public refreshAt(at: string): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-    const existingList = lookup(at, col.idMap)
-      .getOrElse(RD.pending)
-      .toOption()
-      .fold<RD.RemoteData<string[], string[]>>(RD.pending, RD.refresh);
-    col.idMap = insert(at, existingList, col.idMap);
+  public concat(other: RemoteCollection<Resource>): RemoteCollection<Resource> {
+    const col = new RemoteCollection<Resource>(this.idProp);
 
-    return col;
-  }
+    // Add ID to existing view keys
+    col.views = other.views.reduceWithKey(
+      new StrMap<RemoteList<string>>(this.views.value),
+      (key, acc, remoteList) => {
+        const existingList = lookup(key, acc);
+        const concatenated = existingList.fold(remoteList, existing =>
+          existing.chain(list => remoteList.map(l => list.concat(l)))
+        );
 
-  public refresh(): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-    col.knownIds = col.knownIds.toOption().fold<RemoteList<string>>(RD.pending, RD.refresh);
-    col.entities = mapValues<RemoteById<Resource>, Remote<Resource>>(
-      col.entities,
-      (entity: Remote<Resource> | undefined) =>
-        entity ? entity.toOption().fold<Remote<Resource>>(RD.pending, RD.refresh) : RD.pending
+        return insert(key, concatenated, acc);
+      }
     );
 
-    return col;
-  }
-
-  public withListAt(
-    at: string,
-    idProp: keyof Resource,
-    list: Resource[]
-  ): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-
-    const resourceIds: string[] = list.map((resource: Resource): string => resource[idProp]);
-    const newIds = RD.success<string[], string[]>(resourceIds);
-
-    col.idMap = insert(at, newIds, col.idMap);
-    return col.concatResources(idProp, list);
-  }
-
-  public withList(idProp: keyof Resource, list: Resource[]): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-    const idsAndSuccesses: [string, Remote<Resource>][] = list.map(
-      (resource: Resource): [string, Remote<Resource>] => [
-        resource[idProp],
-        RD.success<string[], Resource>(resource)
-      ]
+    // Merge resources from `other` to this entities map
+    col.resources = other.resources.reduceWithKey(
+      this.resources,
+      (key, acc, resource) => insert(key, resource, acc)
     );
-    col.knownIds = RD.success(idsAndSuccesses.map(([id]) => id));
-    col.entities = fromPairs(idsAndSuccesses);
-
-    return col;
-  }
-
-  public withListFailureAt(at: string, error: string): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-
-    col.idMap = insert(at, RD.failure([error]), col.idMap);
-
-    return col;
-  }
-
-  public withListFailure(error: string): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-    col.knownIds = RD.failure([error]);
-    col.entities = {};
 
     return col;
   }
 
   public fetch(id: string): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-    const currentValue = safeGet(this.entities, id);
-    col.entities = {
-      ...this.entities,
-      [id]: currentValue.fold<Remote<Resource>>(RD.pending, (value: Remote<Resource>) =>
-        value.toOption().fold<Remote<Resource>>(RD.pending, RD.refresh)
-      )
-    };
+    const col = new RemoteCollection(this.idProp).concat(this);
+    const resourceSetToFetching = this.find(id).caseOf<
+      | RD.RemotePending<string[], Resource>
+      | RD.RemoteRefresh<string[], Resource>
+    >({
+      initial: RD.pending,
+      failure: () => RD.pending,
+      pending: RD.pending,
+      refresh: RD.refresh,
+      success: RD.refresh
+    });
+
+    col.resources = insert(id, resourceSetToFetching, col.resources);
 
     return col;
   }
 
-  public withResourceAt(at: string, id: string, resource: Resource): RemoteCollection<Resource> {
-    const col = this.withResource(id, resource);
-    const existingIds = lookup(at, col.idMap)
-      .getOrElse(RD.success([]))
-      .map(idList => idList.concat(id));
-    col.idMap = insert(at, existingIds, col.idMap);
-    return col;
+  public find(id: string): Remote<Resource> {
+    return lookup(id, this.resources).getOrElse(RD.initial);
   }
 
-  public withResource(id: string, resource: Resource): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-    col.knownIds = this.concatKnownId(id);
-    col.entities = {
-      ...this.entities,
-      [id]: RD.success(resource)
-    };
+  public map(
+    mapFunction: (resource: Resource) => Resource,
+    viewKey: string = DEFAULT_KEY
+  ): RemoteCollection<Resource> {
+    const mapped = new RemoteCollection(this.idProp);
 
-    return col;
+    mapped.resources = lookup(viewKey, this.views)
+      .getOrElse(RD.initial)
+      .reduce(
+        (acc, idList) =>
+          idList.reduce(
+            (ac, id) => insert(id, this.find(id).map(mapFunction), ac),
+            acc
+          ),
+        mapped.resources
+      );
+
+    return this.concat(mapped);
   }
 
   public mapResource(
     id: string,
     mapFunction: (resource: Resource) => Resource
   ): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
+    const col = new RemoteCollection(this.idProp).concat(this);
 
-    const existingResource = col.entities[id];
-    if (!existingResource) {
-      return col;
-    }
-
-    col.entities = {
-      ...this.entities,
-      [id]: existingResource.map(mapFunction)
-    };
+    col.resources = insert(id, this.find(id).map(mapFunction), this.resources);
 
     return col;
   }
 
-  public withResourceFailureAt(at: string, id: string, error: string): RemoteCollection<Resource> {
-    const col = this.withResourceFailure(id, error);
-    const existingIds = lookup(at, col.idMap)
-      .getOrElse(RD.success([]))
-      .map(idList => idList.concat(id));
-    col.idMap = insert(at, existingIds, col.idMap);
-    return col;
-  }
-
-  public withResourceFailure(id: string, error: string): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-    col.knownIds = this.concatKnownId(id);
-    col.entities = {
-      ...this.entities,
-      [id]: RD.failure([error])
-    };
-
-    return col;
-  }
-
-  public removeAt(at: string, id: string): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-    const existingIds = lookup(at, col.idMap).map(remoteList =>
+  public omit(
+    id: string,
+    viewKey: string = DEFAULT_KEY
+  ): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+    const existingIds = lookup(viewKey, col.views).map(remoteList =>
       remoteList.map(idList => without(idList, id))
     );
 
     if (existingIds.isSome()) {
-      col.idMap = insert(at, existingIds.getOrElse(RD.initial), col.idMap);
+      col.views = insert(viewKey, existingIds.getOrElse(RD.initial), col.views);
     }
+
+    return col;
+  }
+
+  public refresh(viewKey: string = DEFAULT_KEY): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+    const existingList = lookup(viewKey, col.views)
+      .getOrElse(RD.pending)
+      .toOption()
+      .fold<RD.RemoteData<string[], string[]>>(RD.pending, RD.refresh);
+    col.views = insert(viewKey, existingList, col.views);
 
     return col;
   }
 
   public remove(id: string): RemoteCollection<Resource> {
-    const col = new RemoteCollection(this);
-    col.knownIds = this.knownIds.map(ids => without(ids, id));
-    col.entities = omit(this.entities, id);
+    const col = new RemoteCollection(this.idProp).concat(this);
+
+    col.resources = remove(id, this.resources);
 
     return col;
   }
 
-  public viewAt(at: string): RemoteList<Resource> {
-    return lookup(at, this.idMap)
+  public reset(viewKey: string = DEFAULT_KEY): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+
+    col.views = remove(viewKey, col.views);
+
+    return col;
+  }
+
+  public withList(
+    list: Resource[],
+    viewKey: string = DEFAULT_KEY
+  ): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+
+    const resourceIds: string[] = list.map(
+      (resource: Resource): string => resource[this.idProp]
+    );
+    const newIds = RD.success<string[], string[]>(resourceIds);
+
+    col.views = insert(viewKey, newIds, col.views);
+
+    return list.reduce((acc, resource) => acc.withResource(resource), col);
+  }
+
+  public withListFailure(
+    error: string,
+    viewKey: string = DEFAULT_KEY
+  ): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+
+    col.views = insert(viewKey, RD.failure([error]), col.views);
+
+    return col;
+  }
+
+  public withResource(resource: Resource): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+
+    col.resources = insert(
+      resource[this.idProp],
+      RD.success(resource),
+      col.resources
+    );
+
+    return col;
+  }
+
+  public withResourceFailure(
+    id: string,
+    error: string
+  ): RemoteCollection<Resource> {
+    const col = new RemoteCollection(this.idProp).concat(this);
+
+    col.resources = insert(id, RD.failure([error]), col.resources);
+
+    return col;
+  }
+
+  public view(viewKey: string = DEFAULT_KEY): RemoteList<Resource> {
+    return lookup(viewKey, this.views)
       .getOrElse(RD.initial)
       .caseOf<RemoteList<Resource>>({
         failure: RD.failure,
         initial: RD.initial,
         pending: RD.pending,
         refresh: knownIds =>
-          view(this.entities, knownIds)
+          view(this.resources, knownIds)
             .toOption()
             .fold<RemoteList<Resource>>(RD.pending, RD.refresh),
-        success: knownIds => view(this.entities, knownIds)
+        success: knownIds => view(this.resources, knownIds)
       });
   }
 
-  public view(ids?: string[]): RemoteList<Resource> {
-    const viewIds: RemoteList<string> = ids
-      ? this.knownIds.caseOf<RemoteList<string>>({
-          failure: RD.failure,
-          initial: RD.initial,
-          pending: RD.pending,
-          refresh: () => RD.refresh(ids),
-          success: () => RD.success(ids)
-        })
-      : this.knownIds;
-    return viewIds.caseOf<RemoteList<Resource>>({
-      failure: RD.failure,
-      initial: RD.initial,
-      pending: RD.pending,
-      refresh: knownIds =>
-        view(this.entities, knownIds)
-          .toOption()
-          .fold<RemoteList<Resource>>(RD.pending, RD.refresh),
-      success: knownIds => view(this.entities, knownIds)
-    });
+  public toJSON(): RemoteCollectionJSON<Resource> {
+    return {
+      _URI: URI,
+      idProp: this.idProp,
+      resources: this.resources,
+      views: this.views
+    };
   }
+}
 
-  public find(id: string): Remote<Resource> {
-    return safeGet(this.entities, id).getOrElse(RD.initial);
-  }
+function isRemoteCollectionJSON<A>(
+  candidate: any
+): candidate is RemoteCollectionJSON<A> {
+  return (
+    candidate &&
+    candidate._URI === URI &&
+    'views' in candidate &&
+    'resources' in candidate &&
+    'idProp' in candidate
+  );
+}
 
-  public concatResources(
-    idProp: keyof Resource,
-    resources: Resource[]
-  ): RemoteCollection<Resource> {
-    return resources.reduce(
-      (acc, resource) => acc.withResource(resource[idProp], resource),
-      new RemoteCollection(this)
+export function fromJSON<A>(_: string, value: unknown): RemoteCollection<A> | unknown {
+  if (isRemoteCollectionJSON<A>(value)) {
+    const remoteCollection: RemoteCollection<A> = new RemoteCollection<A>(
+      value.idProp
     );
+
+    remoteCollection.views = new StrMap<RemoteList<string>>(
+      value.views.value
+    ).map(RD.fromJSON);
+    remoteCollection.resources = new StrMap<Remote<A>>(
+      value.resources.value
+    ).map(RD.fromJSON);
+
+    return remoteCollection;
+  } else if (compat.isLegacyJSON(value)) {
+    // TODO: Figure out a better way to set the `idProp`
+    return compat.fromJSON('id', value);
   }
 
-  public concat(
-    idProp: keyof Resource,
-    other: RemoteCollection<Resource>
-  ): RemoteCollection<Resource> {
-    const col = new RemoteCollection<Resource>(this);
-
-    const concatenated = other
-      .view()
-      .toOption()
-      .fold(col, (bResources: Resource[]) => col.concatResources(idProp, bResources));
-    concatenated.idMap = mergeIdMap(concatenated.idMap, other.idMap);
-
-    return concatenated;
-  }
-
-  private concatKnownId(id: string): RemoteList<string> {
-    const loneId = RD.success<string[], string[]>([id]);
-    return this.knownIds.caseOf<RemoteList<string>>({
-      failure: () => loneId,
-      initial: loneId,
-      pending: loneId,
-      refresh: stale => RD.refresh(union(stale, [id])),
-      success: value => RD.success(union(value, [id]))
-    });
-  }
+  return value;
 }

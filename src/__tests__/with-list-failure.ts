@@ -20,7 +20,7 @@ test('with no items loaded, #withListFailure', t => {
     'sets the view to failure'
   );
   t.deepEqual(
-    col.view('someOtherKey'),
+    col.view('someOtherViewKey'),
     RD.failure<string[], Item[]>(['Failure!']),
     'sets the view to failure'
   );

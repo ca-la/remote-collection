@@ -33,7 +33,7 @@ test('with no items loaded at the view key, #reset', t => {
   );
 });
 
-test('with some items loaded, #reset', t => {
+test('with some items loaded at two view keys, #reset', t => {
   const col = new RemoteCollection<Item>('id')
     .withList(items, 'someViewKey')
     .withList(items, 'someOtherViewKey')
@@ -46,11 +46,11 @@ test('with some items loaded, #reset', t => {
   );
 });
 
-test('with view failure, #reset', t => {
+test('with view failure at two view keys, #reset', t => {
   const col = new RemoteCollection<Item>('id')
-    .withListFailure(new Error('Oh no'), 'someViewKey')
+    .withListFailure('Oh no', 'someViewKey')
     .withList(items, 'someOtherViewKey')
-    .reset();
+    .reset('someViewKey');
 
   t.deepEqual(col.view('someViewKey'), RD.initial, 'view is set to initial');
   t.deepEqual(

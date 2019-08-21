@@ -483,6 +483,28 @@ assert.deepStrictEqual(
 );
 ```
 
+## omit
+
+### Signature
+```ts
+omit(id: string, viewKey?: string = RemoteCollection.DEFAULT_KEY): RemoteCollection<Resource>
+```
+
+### Example
+```ts
+const collection = new RemoteCollection<User>('id').withList(users, 'team1');
+
+assert.deepStrictEqual(
+  collection.view('team1'),
+  RemoteData.success(users)
+);
+
+assert.deepStrictEqual(
+  collection.omit('a', 'team1').view('team1'),
+  RemoteData.success([{ id: 'b', name: 'Bob' }])
+);
+```
+
 ## reset
 
 Removes the view at the given view key, or at the
