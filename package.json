@@ -1,6 +1,6 @@
 {
   "name": "@cala/remote-collection",
-  "version": "0.5.1",
+  "version": "1.0.0",
   "description": "A RemoteData Collection class",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
