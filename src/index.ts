@@ -155,6 +155,18 @@ export default class Collection<Resource extends { [key: string]: any }> {
     return col;
   }
 
+  public map<B extends Partial<Resource>>(mapFunction: (resource: Resource) => B): Collection<B> {
+    const col = new Collection<B>();
+    col.knownIds = this.knownIds;
+    col.idMap = this.idMap;
+    col.entities = mapValues<RemoteById<Resource>, Remote<B>>(
+      this.entities,
+      (entity: Remote<Resource> | undefined) => (entity ? entity.map(mapFunction) : RD.initial)
+    );
+
+    return col;
+  }
+
   public mapResource(
     id: string,
     mapFunction: (resource: Resource) => Resource
