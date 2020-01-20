@@ -5,12 +5,12 @@ import { Item, items } from './fixtures';
 
 interface FooCount {
   id: string;
-  count: number;
+  foo: number;
 }
 
 const countFoo = (a: Item): FooCount => ({
   id: a.id,
-  count: a.foo.length
+  foo: a.foo.length
 });
 
 test('with no items loaded, #map', t => {
@@ -23,8 +23,8 @@ test('with items loaded, #map on an existing ID', t => {
   const col = new Collection<Item>().withList('id', items).map(countFoo);
   t.deepEqual(col.knownIds, RD.success<string[], string[]>(['a', 'b']));
   t.deepEqual(col.entities, {
-    a: RD.success<string[], FooCount>({ id: 'a', count: 3 }),
-    b: RD.success<string[], FooCount>({ id: 'b', count: 3 })
+    a: RD.success<string[], FooCount>({ id: 'a', foo: 3 }),
+    b: RD.success<string[], FooCount>({ id: 'b', foo: 3 })
   });
 });
 
