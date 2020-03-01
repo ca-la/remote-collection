@@ -87,7 +87,6 @@
   "dependencies": {
     "@cala/remote-data": "^0.2.0",
     "fp-ts": "^1.16.1",
-    "isomorphic-fetch": "^2.2.1",
     "lodash": "^4.17.15"
   }
 }
