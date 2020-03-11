@@ -120,3 +120,30 @@ test('with non-empty, overlapping collections at different view keys, #concat', 
     'updates instance resources at the overlapping item'
   );
 });
+
+test('with a mixture of different states at the same key, #concat', t => {
+  const initial = new RemoteCollection<Item>('id');
+  const pending = new RemoteCollection<Item>('id').refresh('someViewKey');
+  const success = new RemoteCollection<Item>('id').withList(
+    items,
+    'someViewKey'
+  );
+  const refresh = new RemoteCollection<Item>('id')
+    .withList(items, 'someViewKey')
+    .refresh('someViewKey');
+  const failure = new RemoteCollection<Item>('id').withListFailure(
+    'Somebody set up us the bomb',
+    'someViewKey'
+  );
+
+  t.deepEqual(initial.concat(success).view('someViewKey'), RD.success(items));
+  t.deepEqual(pending.concat(success).view('someViewKey'), RD.success(items));
+  t.deepEqual(success.concat(pending).view('someViewKey'), RD.pending);
+  t.deepEqual(pending.concat(refresh).view('someViewKey'), RD.refresh(items));
+  t.deepEqual(refresh.concat(pending).view('someViewKey'), RD.pending);
+  t.deepEqual(
+    success.concat(failure).view('someViewKey'),
+    RD.failure(['Somebody set up us the bomb'])
+  );
+  t.deepEqual(failure.concat(success).view('someViewKey'), RD.success(items));
+});
