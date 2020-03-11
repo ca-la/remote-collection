@@ -58,7 +58,13 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
       (key, acc, remoteList) => {
         const existingList = lookup(key, acc);
         const concatenated = existingList.fold(remoteList, existing =>
-          existing.chain(list => remoteList.map(l => list.concat(l)))
+          existing.fold(
+            remoteList,
+            remoteList,
+            () => remoteList,
+            list => remoteList.map(l => list.concat(l)),
+            list => remoteList.map(l => list.concat(l))
+          )
         );
 
         return insert(key, concatenated, acc);
@@ -257,7 +263,10 @@ function isRemoteCollectionJSON<A>(
   );
 }
 
-export function fromJSON<A>(_: string, value: unknown): RemoteCollection<A> | unknown {
+export function fromJSON<A>(
+  _: string,
+  value: unknown
+): RemoteCollection<A> | unknown {
   if (isRemoteCollectionJSON<A>(value)) {
     const remoteCollection: RemoteCollection<A> = new RemoteCollection<A>(
       value.idProp
