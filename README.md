@@ -452,6 +452,48 @@ assert.deepStrictEqual(
 );
 ```
 
+## union
+
+Unites a `RemoteCollection` to another. The `source`'s views are added to the
+*end* of the instance's existing views. If an item already exists in the
+`source`'s view, it is not appended, such that the item stays in the same place
+as it did in the `source`'s view. The resources in the `source` overwrite any
+sources with matching `idProp` in the instance, and new resources are added.
+
+
+### Signature
+```ts
+union(
+  source: RemoteCollection<Resource>
+): RemoteCollection<Resource>
+```
+
+### Example
+
+Adding some items without adding duplicates
+
+```ts
+const users: User[] = [
+  { id: 'a', name: 'Alice' },
+  { id: 'b', name: 'Bob' }
+];
+const otherUsers: User[] =[
+  { id: 'a', name: 'Alex' },
+  { id: 'c', name: 'Charlie' }
+];
+const collection = new RemoteCollection<User>('id').withList(users, 'team1');
+const updated = new RemoteCollection<User>('id').withList(otherUsers, 'team1');
+
+assert.deepStrictEqual(
+  collection.union(updated).view('team1'),
+  RemoteData.success([
+    { id: 'a', name: 'Alex' },
+    { id: 'b', name: 'Bob' },
+    { id: 'c', name: 'Charlie' }
+  ])
+);
+```
+
 ## map
 
 Apply a function to every resource at a view key. **Note:** Be careful if your
