@@ -2,7 +2,8 @@ import { without } from 'lodash';
 import * as RD from '@cala/remote-data';
 import { lookup, insert, StrMap, remove } from 'fp-ts/lib/StrMap';
 import { sequence } from 'fp-ts/lib/Traversable';
-import { array } from 'fp-ts/lib/Array';
+import { array, union } from 'fp-ts/lib/Array';
+import { setoidString } from 'fp-ts/lib/Setoid';
 
 import { Remote, RemoteList } from './types';
 import * as compat from './compat';
@@ -68,6 +69,37 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
         );
 
         return insert(key, concatenated, acc);
+      }
+    );
+
+    // Merge resources from `other` to this entities map
+    col.resources = other.resources.reduceWithKey(
+      this.resources,
+      (key, acc, resource) => insert(key, resource, acc)
+    );
+
+    return col;
+  }
+
+  public union(other: RemoteCollection<Resource>): RemoteCollection<Resource> {
+    const col = new RemoteCollection<Resource>(this.idProp);
+
+    // Union ID to existing view keys
+    col.views = other.views.reduceWithKey(
+      new StrMap<RemoteList<string>>(this.views.value),
+      (key, acc, remoteList) => {
+        const existingList = lookup(key, acc);
+        const united = existingList.fold(remoteList, existing =>
+          existing.fold(
+            remoteList,
+            remoteList,
+            () => remoteList,
+            list => remoteList.map(l => union(setoidString)(list, l)),
+            list => remoteList.map(l => union(setoidString)(list, l))
+          )
+        );
+
+        return insert(key, united, acc);
       }
     );
 
