@@ -1,7 +1,7 @@
-import * as RD from '@cala/remote-data';
-import { StrMap } from 'fp-ts/lib/StrMap';
-import RemoteCollection, { DEFAULT_KEY, URI } from './';
-import { RemoteList, ById, Remote } from './types';
+import * as RD from "@cala/remote-data";
+import { StrMap } from "fp-ts/lib/StrMap";
+import RemoteCollection, { DEFAULT_KEY, URI } from "./";
+import { RemoteList, ById, Remote } from "./types";
 
 interface LegacyJSON<Resource> {
   _URI: URI;
@@ -14,9 +14,9 @@ export function isLegacyJSON<A>(candidate: any): candidate is LegacyJSON<A> {
   return (
     candidate &&
     candidate._URI === URI &&
-    'knownIds' in candidate &&
-    'idMap' in candidate &&
-    'entities' in candidate
+    "knownIds" in candidate &&
+    "idMap" in candidate &&
+    "entities" in candidate
   );
 }
 
@@ -30,10 +30,12 @@ export function fromJSON<A>(
     const views = Object.keys(legacy.idMap).reduce(
       (acc: { [id: string]: RemoteList<string> }, id: string) => ({
         ...acc,
-        [id]: RD.fromJSON(legacy.idMap[id] as RD.RemoteJSON<string[], string[]>)
+        [id]: RD.fromJSON(
+          legacy.idMap[id] as RD.RemoteJSON<string[], string[]>
+        ),
       }),
       {
-        [DEFAULT_KEY]: RD.fromJSON(legacy.knownIds)
+        [DEFAULT_KEY]: RD.fromJSON(legacy.knownIds),
       }
     );
 
@@ -42,7 +44,7 @@ export function fromJSON<A>(
     const resources = Object.keys(legacy.entities).reduce(
       (acc: { [id: string]: Remote<A> }, id) => ({
         ...acc,
-        [id]: RD.fromJSON(legacy.entities[id] as RD.RemoteJSON<string[], A>)
+        [id]: RD.fromJSON(legacy.entities[id] as RD.RemoteJSON<string[], A>),
       }),
       {}
     );
