@@ -1,19 +1,19 @@
-import { without } from 'lodash';
-import * as RD from '@cala/remote-data';
-import { lookup, insert, StrMap, remove } from 'fp-ts/lib/StrMap';
-import { sequence } from 'fp-ts/lib/Traversable';
-import { array, union } from 'fp-ts/lib/Array';
-import { setoidString } from 'fp-ts/lib/Setoid';
+import { without } from "lodash";
+import * as RD from "@cala/remote-data";
+import { lookup, insert, StrMap, remove } from "fp-ts/lib/StrMap";
+import { sequence } from "fp-ts/lib/Traversable";
+import { array, union } from "fp-ts/lib/Array";
+import { setoidString } from "fp-ts/lib/Setoid";
 
-import { Remote, RemoteList } from './types';
-import * as compat from './compat';
+import { Remote, RemoteList } from "./types";
+import * as compat from "./compat";
 
-export const URI = '@cala/remote-collection';
+export const URI = "@cala/remote-collection";
 export type URI = typeof URI;
 export const DEFAULT_KEY = `${URI}_DEFAULT_KEY`;
-declare module 'fp-ts/lib/HKT' {
+declare module "fp-ts/lib/HKT" {
   interface URI2HKT1<A> {
-    '@cala/remote-collection': RemoteCollection<A>;
+    "@cala/remote-collection": RemoteCollection<A>;
   }
 }
 
@@ -58,13 +58,13 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
       new StrMap<RemoteList<string>>(this.views.value),
       (key, acc, remoteList) => {
         const existingList = lookup(key, acc);
-        const concatenated = existingList.fold(remoteList, existing =>
+        const concatenated = existingList.fold(remoteList, (existing) =>
           existing.fold(
             remoteList,
             remoteList,
             () => remoteList,
-            list => remoteList.map(l => list.concat(l)),
-            list => remoteList.map(l => list.concat(l))
+            (list) => remoteList.map((l) => list.concat(l)),
+            (list) => remoteList.map((l) => list.concat(l))
           )
         );
 
@@ -89,13 +89,13 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
       new StrMap<RemoteList<string>>(this.views.value),
       (key, acc, remoteList) => {
         const existingList = lookup(key, acc);
-        const united = existingList.fold(remoteList, existing =>
+        const united = existingList.fold(remoteList, (existing) =>
           existing.fold(
             remoteList,
             remoteList,
             () => remoteList,
-            list => remoteList.map(l => union(setoidString)(list, l)),
-            list => remoteList.map(l => union(setoidString)(list, l))
+            (list) => remoteList.map((l) => union(setoidString)(list, l)),
+            (list) => remoteList.map((l) => union(setoidString)(list, l))
           )
         );
 
@@ -122,7 +122,7 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
       failure: () => RD.pending,
       pending: RD.pending,
       refresh: RD.refresh,
-      success: RD.refresh
+      success: RD.refresh,
     });
 
     col.resources = insert(id, resourceSetToFetching, col.resources);
@@ -170,8 +170,8 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
     viewKey: string = DEFAULT_KEY
   ): RemoteCollection<Resource> {
     const col = new RemoteCollection(this.idProp).concat(this);
-    const existingIds = lookup(viewKey, col.views).map(remoteList =>
-      remoteList.map(idList => without(idList, id))
+    const existingIds = lookup(viewKey, col.views).map((remoteList) =>
+      remoteList.map((idList) => without(idList, id))
     );
 
     if (existingIds.isSome()) {
@@ -265,11 +265,11 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
         failure: RD.failure,
         initial: RD.initial,
         pending: RD.pending,
-        refresh: knownIds =>
+        refresh: (knownIds) =>
           view(this.resources, knownIds)
             .toOption()
             .fold<RemoteList<Resource>>(RD.pending, RD.refresh),
-        success: knownIds => view(this.resources, knownIds)
+        success: (knownIds) => view(this.resources, knownIds),
       });
   }
 
@@ -278,7 +278,7 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
       _URI: URI,
       idProp: this.idProp,
       resources: this.resources,
-      views: this.views
+      views: this.views,
     };
   }
 }
@@ -289,9 +289,9 @@ function isRemoteCollectionJSON<A>(
   return (
     candidate &&
     candidate._URI === URI &&
-    'views' in candidate &&
-    'resources' in candidate &&
-    'idProp' in candidate
+    "views" in candidate &&
+    "resources" in candidate &&
+    "idProp" in candidate
   );
 }
 
@@ -314,7 +314,7 @@ export function fromJSON<A>(
     return remoteCollection;
   } else if (compat.isLegacyJSON(value)) {
     // TODO: Figure out a better way to set the `idProp`
-    return compat.fromJSON('id', value);
+    return compat.fromJSON("id", value);
   }
 
   return value;
