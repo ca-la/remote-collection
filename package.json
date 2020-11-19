@@ -58,21 +58,17 @@
   },
   "homepage": "https://gitlab.com/ca-la/remote-collection#readme",
   "devDependencies": {
-    "@types/lodash": "^4.14.137",
-    "ava": "^2.3.0",
+    "@types/lodash": "^4.14.165",
+    "ava": "^3.13.0",
     "prettier": "^2.0.5",
-    "ts-node": "^7.0.1",
+    "ts-node": "^9.0.0",
     "tslib": "^1.9.3",
-    "tslint": "^5.15.0",
-    "tslint-config-prettier": "^1.15.0",
-    "tslint-plugin-prettier": "^2.0.0",
     "typescript": "^3.5.3"
   },
   "publishConfig": {
     "access": "public"
   },
   "ava": {
-    "compileEnhancements": false,
     "files": [
       "**/__tests__/**/*",
       "!**/__tests__/fixtures/*"
@@ -85,8 +81,8 @@
     ]
   },
   "dependencies": {
-    "@cala/remote-data": "^0.2.0",
+    "@cala/remote-data": "^0.3.1",
     "fp-ts": "^1.16.1",
-    "lodash": "^4.17.15"
+    "lodash": "^4.17.20"
   }
 }
