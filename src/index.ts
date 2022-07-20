@@ -218,10 +218,9 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
       (resource: Resource): string => resource[this.idProp]
     );
     const newIds = RD.success<string[], string[]>(resourceIds);
-
     col.views = insert(viewKey, newIds, col.views);
 
-    return list.reduce((acc, resource) => acc.withResource(resource), col);
+    return list.reduce((acc, resource) => acc.addResource(resource), col);
   }
 
   public withListFailure(
@@ -238,13 +237,7 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
   public withResource(resource: Resource): RemoteCollection<Resource> {
     const col = new RemoteCollection(this.idProp).concat(this);
 
-    col.resources = insert(
-      resource[this.idProp],
-      RD.success(resource),
-      col.resources
-    );
-
-    return col;
+    return col.addResource(resource);
   }
 
   public withResourceFailure(
@@ -280,6 +273,17 @@ export default class RemoteCollection<Resource extends { [key: string]: any }> {
       resources: this.resources,
       views: this.views,
     };
+  }
+
+  // Mutate the instance `resource` directly to avoid unnecessary copying in withList
+  private addResource(resource: Resource): RemoteCollection<Resource> {
+    this.resources = insert(
+      resource[this.idProp],
+      RD.success(resource),
+      this.resources
+    );
+
+    return this;
   }
 }
 
