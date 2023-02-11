@@ -59,7 +59,7 @@
   "homepage": "https://gitlab.com/ca-la/remote-collection#readme",
   "devDependencies": {
     "@types/lodash": "^4.14.165",
-    "ava": "^3.13.0",
+    "ava": "^5.2.0",
     "prettier": "^2.0.5",
     "ts-node": "^9.0.0",
     "tslib": "^1.9.3",
